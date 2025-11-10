@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能旅游规划助手</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>智能旅游规划助手</h1>
+            <nav>
+                <button id="login-btn">登录</button>
+                <button id="register-btn">注册</button>
+                <button id="settings-btn">设置</button>
+            </nav>
+        </header>
+
+        <main>
+            <section id="welcome-section">
+                <h2>开始您的智能旅行规划</h2>
+                <form id="travel-form">
+                    <div class="form-group">
+                        <label for="destination">旅行目的地:</label>
+                        <input type="text" id="destination" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="days">旅行天数:</label>
+                        <input type="number" id="days" min="1" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="budget">人均预算:</label>
+                        <input type="number" id="budget" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="preferences">旅行偏好:</label>
+                        <textarea id="preferences" placeholder="例如：我喜欢美食和动漫，带孩子出行"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="voice-input">语音输入:</label>
+                        <button type="button" id="start-voice-btn">开始语音识别</button>
+                        <button type="button" id="stop-voice-btn" disabled>停止语音识别</button>
+                    </div>
+                    
+                    <button type="submit">生成旅行计划</button>
+                </form>
+            </section>
+
+            <section id="plan-section" class="hidden">
+                <h2>您的旅行计划</h2>
+                <div id="travel-plan"></div>
+            </section>
+        </main>
+
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>设置</h2>
+                <form id="settings-form">
+                    <div class="form-group">
+                        <label for="deepseek-api-key">DeepSeek API Key:</label>
+                        <input type="password" id="deepseek-api-key" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="supabase-url">Supabase URL:</label>
+                        <input type="text" id="supabase-url" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="supabase-key">Supabase Key:</label>
+                        <input type="password" id="supabase-key" required>
+                    </div>
+                    <button type="submit">保存设置</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="auth-modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div id="login-form">
+                    <h2>登录</h2>
+                    <form>
+                        <div class="form-group">
+                            <label for="login-email">邮箱:</label>
+                            <input type="email" id="login-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">密码:</label>
+                            <input type="password" id="login-password" required>
+                        </div>
+                        <button type="submit">登录</button>
+                    </form>
+                    <p>还没有账户? <a href="#" id="show-register">注册</a></p>
+                </div>
+                
+                <div id="register-form" class="hidden">
+                    <h2>注册</h2>
+                    <form>
+                        <div class="form-group">
+                            <label for="register-email">邮箱:</label>
+                            <input type="email" id="register-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password">密码:</label>
+                            <input type="password" id="register-password" required>
+                        </div>
+                        <button type="submit">注册</button>
+                    </form>
+                    <p>已有账户? <a href="#" id="show-login">登录</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>
