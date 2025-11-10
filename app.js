@@ -17,21 +17,24 @@ const closeButtons = document.querySelectorAll('.close');
 // Settings form elements
 const settingsForm = document.getElementById('settings-form');
 const deepseekApiKeyInput = document.getElementById('deepseek-api-key');
-const supabaseUrlInput = document.getElementById('supabase-url');
-const supabaseKeyInput = document.getElementById('supabase-key');
 
 // Auth form elements
 const showRegisterLink = document.getElementById('show-register');
 const showLoginLink = document.getElementById('show-login');
 const loginFormDiv = document.getElementById('login-form');
 const registerFormDiv = document.getElementById('register-form');
+const loginForm = loginFormDiv.querySelector('form');
+const registerForm = registerFormDiv.querySelector('form');
 
 // Speech recognition variables
 let recognition;
 let isRecognizing = false;
 
-// Supabase client
-let supabase;
+// User state
+let currentUser = null;
+
+// Backend API base URL
+const API_BASE_URL = 'http://localhost:3000/api';
 
 // Check if browser supports speech recognition
 const supportsSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
@@ -40,9 +43,6 @@ const supportsSpeechRecognition = 'webkitSpeechRecognition' in window || 'Speech
 document.addEventListener('DOMContentLoaded', () => {
     // Load settings from localStorage
     loadSettings();
-    
-    // Initialize Supabase if settings exist
-    initSupabase();
     
     // Set up event listeners
     setupEventListeners();
@@ -53,29 +53,18 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.warn('Browser does not support speech recognition');
         // Hide voice input buttons if not supported
-        document.querySelector('.form-group[label="语音输入"]').style.display = 'none';
+        document.querySelector('[for="voice-input"]')?.closest('.form-group')?.style.display = 'none';
     }
+    
+    // Check if user is already logged in
+    checkUserStatus();
 });
 
 // Load settings from localStorage
 function loadSettings() {
     const deepseekApiKey = localStorage.getItem('deepseekApiKey');
-    const supabaseUrl = localStorage.getItem('supabaseUrl');
-    const supabaseKey = localStorage.getItem('supabaseKey');
     
     if (deepseekApiKey) deepseekApiKeyInput.value = deepseekApiKey;
-    if (supabaseUrl) supabaseUrlInput.value = supabaseUrl;
-    if (supabaseKey) supabaseKeyInput.value = supabaseKey;
-}
-
-// Initialize Supabase
-function initSupabase() {
-    const supabaseUrl = supabaseUrlInput.value;
-    const supabaseKey = supabaseKeyInput.value;
-    
-    if (supabaseUrl && supabaseKey) {
-        supabase = supabase.createClient(supabaseUrl, supabaseKey);
-    }
 }
 
 // Set up event listeners
@@ -136,10 +125,107 @@ function setupEventListeners() {
     // Settings form submission
     settingsForm.addEventListener('submit', handleSettingsFormSubmit);
     
+    // Auth form submissions
+    loginForm.addEventListener('submit', handleLogin);
+    registerForm.addEventListener('submit', handleRegister);
+    
     // Voice recognition buttons
     if (supportsSpeechRecognition) {
         startVoiceBtn.addEventListener('click', startVoiceRecognition);
         stopVoiceBtn.addEventListener('click', stopVoiceRecognition);
+    }
+}
+
+// Check user status
+function checkUserStatus() {
+    // In a real app, you would check for a valid session token
+    // For now, we'll just update the UI based on currentUser state
+    updateAuthUI();
+}
+
+// Update authentication UI
+function updateAuthUI() {
+    if (currentUser) {
+        // User is logged in
+        loginBtn.textContent = `欢迎, ${currentUser.email}`;
+        registerBtn.style.display = 'none';
+    } else {
+        // User is not logged in
+        loginBtn.textContent = '登录';
+        registerBtn.style.display = 'inline-block';
+    }
+}
+
+// Handle login
+async function handleLogin(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || '登录失败');
+        }
+        
+        currentUser = {
+            id: data.user.id,
+            email: data.user.email
+        };
+        
+        // Close modal
+        authModal.classList.add('hidden');
+        
+        // Update UI
+        updateAuthUI();
+        
+        alert('登录成功!');
+    } catch (error) {
+        console.error('Login error:', error);
+        alert(error.message);
+    }
+}
+
+// Handle registration
+async function handleRegister(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || '注册失败');
+        }
+        
+        alert('注册成功! 请登录您的账户。');
+        
+        // Switch to login form
+        registerFormDiv.classList.add('hidden');
+        loginFormDiv.classList.remove('hidden');
+    } catch (error) {
+        console.error('Registration error:', error);
+        alert(error.message);
     }
 }
 
@@ -169,6 +255,11 @@ async function handleTravelFormSubmit(e) {
         
         // Display the travel plan
         displayTravelPlan(travelPlan);
+        
+        // Save travel plan to backend if user is logged in
+        if (currentUser) {
+            await saveTravelPlanToBackend(travelPlan);
+        }
         
         // Switch to plan section
         welcomeSection.classList.add('hidden');
@@ -299,21 +390,39 @@ function displayTravelPlan(plan) {
     travelPlanDiv.innerHTML = planHTML;
 }
 
+// Save travel plan to backend
+async function saveTravelPlanToBackend(travelPlan) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/travel-plans`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId: currentUser.id,
+                travelPlan: travelPlan
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to save travel plan');
+        }
+        
+        const result = await response.json();
+        console.log('Travel plan saved:', result);
+    } catch (error) {
+        console.error('Error saving travel plan:', error);
+    }
+}
+
 // Handle settings form submission
 function handleSettingsFormSubmit(e) {
     e.preventDefault();
     
     const deepseekApiKey = deepseekApiKeyInput.value;
-    const supabaseUrl = supabaseUrlInput.value;
-    const supabaseKey = supabaseKeyInput.value;
     
     // Save to localStorage
     localStorage.setItem('deepseekApiKey', deepseekApiKey);
-    localStorage.setItem('supabaseUrl', supabaseUrl);
-    localStorage.setItem('supabaseKey', supabaseKey);
-    
-    // Initialize Supabase
-    initSupabase();
     
     // Close modal
     settingsModal.classList.add('hidden');
