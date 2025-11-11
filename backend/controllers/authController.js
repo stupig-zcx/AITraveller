@@ -1,3 +1,7 @@
+// 添加全局fetch支持
+const fetch = require('node-fetch');
+global.fetch = fetch;
+
 const supabase = require('../supabaseClient');
 
 // 用户注册

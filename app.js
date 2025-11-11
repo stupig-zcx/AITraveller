@@ -11,6 +11,12 @@ const registerBtn = document.getElementById('register-btn');
 const startVoiceBtn = document.getElementById('start-voice-btn');
 const stopVoiceBtn = document.getElementById('stop-voice-btn');
 
+// 添加调试日志
+console.log('DOM Elements:');
+console.log('settingsBtn:', settingsBtn);
+console.log('loginBtn:', loginBtn);
+console.log('registerBtn:', registerBtn);
+
 // Modal close buttons
 const closeButtons = document.querySelectorAll('.close');
 
@@ -41,6 +47,8 @@ const supportsSpeechRecognition = 'webkitSpeechRecognition' in window || 'Speech
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded');
+    
     // Load settings from localStorage
     loadSettings();
     
@@ -53,7 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.warn('Browser does not support speech recognition');
         // Hide voice input buttons if not supported
-        document.querySelector('[for="voice-input"]')?.closest('.form-group')?.style.display = 'none';
+        var voiceInput = document.querySelector('[for="voice-input"]');
+        if (voiceInput && voiceInput.closest) {
+            var formGroup = voiceInput.closest('.form-group');
+            if (formGroup) {
+                formGroup.style.display = 'none';
+            }
+        }
     }
     
     // Check if user is already logged in
@@ -69,70 +83,148 @@ function loadSettings() {
 
 // Set up event listeners
 function setupEventListeners() {
+    console.log('Setting up event listeners');
+    
     // Form submission
-    travelForm.addEventListener('submit', handleTravelFormSubmit);
+    if (travelForm) {
+        travelForm.addEventListener('submit', handleTravelFormSubmit);
+    } else {
+        console.error('travelForm not found');
+    }
     
     // Settings modal
-    settingsBtn.addEventListener('click', () => {
-        settingsModal.classList.remove('hidden');
-    });
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            console.log('Settings button clicked');
+            if (settingsModal) {
+                settingsModal.classList.remove('hidden');
+            } else {
+                console.error('settingsModal not found');
+            }
+        });
+    } else {
+        console.error('settingsBtn not found');
+    }
     
     // Auth modals
-    loginBtn.addEventListener('click', () => {
-        authModal.classList.remove('hidden');
-        loginFormDiv.classList.remove('hidden');
-        registerFormDiv.classList.add('hidden');
-    });
+    if (loginBtn) {
+        loginBtn.addEventListener('click', () => {
+            console.log('Login button clicked');
+            if (authModal && loginFormDiv && registerFormDiv) {
+                authModal.classList.remove('hidden');
+                loginFormDiv.classList.remove('hidden');
+                registerFormDiv.classList.add('hidden');
+            } else {
+                console.error('One or more auth elements not found');
+            }
+        });
+    } else {
+        console.error('loginBtn not found');
+    }
     
-    registerBtn.addEventListener('click', () => {
-        authModal.classList.remove('hidden');
-        loginFormDiv.classList.add('hidden');
-        registerFormDiv.classList.remove('hidden');
-    });
+    if (registerBtn) {
+        registerBtn.addEventListener('click', () => {
+            console.log('Register button clicked');
+            if (authModal && loginFormDiv && registerFormDiv) {
+                authModal.classList.remove('hidden');
+                loginFormDiv.classList.add('hidden');
+                registerFormDiv.classList.remove('hidden');
+            } else {
+                console.error('One or more auth elements not found');
+            }
+        });
+    } else {
+        console.error('registerBtn not found');
+    }
     
     // Show register form
-    showRegisterLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        loginFormDiv.classList.add('hidden');
-        registerFormDiv.classList.remove('hidden');
-    });
+    if (showRegisterLink) {
+        showRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Show register link clicked');
+            if (loginFormDiv && registerFormDiv) {
+                loginFormDiv.classList.add('hidden');
+                registerFormDiv.classList.remove('hidden');
+            } else {
+                console.error('Form divs not found');
+            }
+        });
+    } else {
+        console.error('showRegisterLink not found');
+    }
     
     // Show login form
-    showLoginLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        registerFormDiv.classList.add('hidden');
-        loginFormDiv.classList.remove('hidden');
-    });
+    if (showLoginLink) {
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Show login link clicked');
+            if (registerFormDiv && loginFormDiv) {
+                registerFormDiv.classList.add('hidden');
+                loginFormDiv.classList.remove('hidden');
+            } else {
+                console.error('Form divs not found');
+            }
+        });
+    } else {
+        console.error('showLoginLink not found');
+    }
     
     // Close modals
-    closeButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            settingsModal.classList.add('hidden');
-            authModal.classList.add('hidden');
+    if (closeButtons && closeButtons.length > 0) {
+        closeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                console.log('Close button clicked');
+                if (settingsModal) settingsModal.classList.add('hidden');
+                if (authModal) authModal.classList.add('hidden');
+            });
         });
-    });
+    } else {
+        console.error('Close buttons not found');
+    }
     
     // Close modals when clicking outside
     window.addEventListener('click', (e) => {
-        if (e.target === settingsModal) {
+        if (settingsModal && e.target === settingsModal) {
             settingsModal.classList.add('hidden');
         }
-        if (e.target === authModal) {
+        if (authModal && e.target === authModal) {
             authModal.classList.add('hidden');
         }
     });
     
     // Settings form submission
-    settingsForm.addEventListener('submit', handleSettingsFormSubmit);
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', handleSettingsFormSubmit);
+    } else {
+        console.error('settingsForm not found');
+    }
     
     // Auth form submissions
-    loginForm.addEventListener('submit', handleLogin);
-    registerForm.addEventListener('submit', handleRegister);
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+    } else {
+        console.error('loginForm not found');
+    }
+    
+    if (registerForm) {
+        registerForm.addEventListener('submit', handleRegister);
+    } else {
+        console.error('registerForm not found');
+    }
     
     // Voice recognition buttons
     if (supportsSpeechRecognition) {
-        startVoiceBtn.addEventListener('click', startVoiceRecognition);
-        stopVoiceBtn.addEventListener('click', stopVoiceRecognition);
+        if (startVoiceBtn) {
+            startVoiceBtn.addEventListener('click', startVoiceRecognition);
+        } else {
+            console.error('startVoiceBtn not found');
+        }
+        
+        if (stopVoiceBtn) {
+            stopVoiceBtn.addEventListener('click', stopVoiceRecognition);
+        } else {
+            console.error('stopVoiceBtn not found');
+        }
     }
 }
 
@@ -293,23 +385,33 @@ async function generateTravelPlan(destination, days, budget, preferences) {
     
     返回格式示例:
     {
-      "ID": "随机字符串",
-      "Title": "${destination}旅行计划",
-      "totalConsumption": "总消费估算",
-      "DaysDetail": [
+      "title": "旅行标题",
+      "total_consumption": "总消费金额（人民币）",
+      "days_detail": [
         {
-          "Title": "第1天",
-          "Consumption": "当天消费估算",
-          "Stay": "住宿信息",
-          "Locations": [
+          "date": "日期（YYYY-MM-DD）",
+          "transportation": "交通方式",
+          "accommodation": "住宿信息",
+          "attractions": [
             {
-              "name": "地点名称",
-              "time": "时间安排",
-              "content": "活动详情",
-              "transportation": "交通方式",
-              "consumption": "消费金额",
-              "consumptionSource": "消费项目",
-              "img": "图片链接或null"
+              "name": "景点名称",
+              "ticket_price": "门票价格（人民币）",
+              "introduction": "景点介绍",
+              "address": "景点地址"
+            }
+          ],
+          "food": [
+            {
+              "name": "餐厅或食物名称",
+              "price_per_person": "人均消费（人民币）",
+              "recommendation": "推荐理由"
+            }
+          ],
+          "activities": [
+            {
+              "name": "活动名称",
+              "cost": "费用（人民币）",
+              "description": "活动描述"
             }
           ]
         }
@@ -328,7 +430,74 @@ async function generateTravelPlan(destination, days, budget, preferences) {
         body: JSON.stringify({
             model: "deepseek-chat",
             messages: [
-                { role: "system", content: "你是一个专业的旅行规划师，能根据用户需求生成详细的旅行计划。" },
+                { 
+                  role: "system", 
+                  content: `你是旅行规划师，你的任务是根据用户的预算、时间和其他偏好生成旅行计划。
+
+输出格式要求：
+你需要以严格的JSON格式输出，具体结构如下：
+{
+  "title": "旅行标题",
+  "total_consumption": "总消费金额（人民币）",
+  "days_detail": [
+    {
+      "date": "日期（YYYY-MM-DD）",
+      "transportation": "交通方式",
+      "accommodation": "住宿信息",
+      "attractions": [
+        {
+          "name": "景点名称",
+          "ticket_price": "门票价格（人民币）",
+          "introduction": "景点介绍",
+          "address": "景点地址"
+        }
+      ],
+      "food": [
+        {
+          "name": "餐厅或食物名称",
+          "price_per_person": "人均消费（人民币）",
+          "recommendation": "推荐理由"
+        }
+      ],
+      "activities": [
+        {
+          "name": "活动名称",
+          "cost": "费用（人民币）",
+          "description": "活动描述"
+        }
+      ]
+    }
+  ]
+}
+
+字段说明：
+1. title: 旅行的整体标题，应简洁且具有吸引力
+2. total_consumption: 整个旅行的预估总消费，以人民币为单位
+3. days_detail: 按日期排列的详细行程安排数组
+   - date: 当天日期，格式为 YYYY-MM-DD
+   - transportation: 当日使用的交通方式（如飞机、火车、公交、出租车等）
+   - accommodation: 住宿地点和信息
+   - attractions: 访问的景点列表
+     - name: 景点名称
+     - ticket_price: 景点门票价格
+     - introduction: 景点简要介绍（不超过100字）
+     - address: 景点的具体地址
+   - food: 餐饮安排列表
+     - name: 餐厅或特色食品名称
+     - price_per_person: 人均消费
+     - recommendation: 推荐原因（不超过50字）
+   - activities: 其他活动安排
+     - name: 活动名称
+     - cost: 活动费用
+     - description: 活动简要描述
+
+注意事项：
+1. 所有价格必须以人民币（元）为单位
+2. 保证JSON格式的有效性和完整性
+3. 内容需真实可靠，符合实际情况
+4. 根据用户输入的预算合理分配各项开支
+5. 行程安排应考虑时间和地理位置的合理性`
+                },
                 { role: "user", content: prompt }
             ],
             temperature: 0.7
@@ -359,30 +528,58 @@ async function generateTravelPlan(destination, days, budget, preferences) {
 // Display travel plan
 function displayTravelPlan(plan) {
     let planHTML = `
-        <h2>${plan.Title}</h2>
-        <p class="consumption">总消费估算: ${plan.totalConsumption}</p>
+        <h2>${plan.title}</h2>
+        <p class="consumption">总消费估算: ${plan.total_consumption}</p>
     `;
     
-    plan.DaysDetail.forEach(day => {
+    plan.days_detail.forEach((day, index) => {
         planHTML += `
             <div class="day">
-                <h3>${day.Title}</h3>
-                <p class="consumption">当日消费: ${day.Consumption}</p>
-                <p><strong>住宿:</strong> ${day.Stay}</p>
+                <h3>第${index + 1}天</h3>
+                <p><strong>日期:</strong> ${day.date}</p>
+                <p><strong>交通:</strong> ${day.transportation}</p>
+                <p><strong>住宿:</strong> ${day.accommodation}</p>
         `;
         
-        day.Locations.forEach(location => {
-            planHTML += `
-                <div class="location">
-                    <h4>${location.name}</h4>
-                    <p><strong>时间:</strong> ${location.time}</p>
-                    <p>${location.content}</p>
-                    <p class="transportation">交通: ${location.transportation}</p>
-                    <p class="consumption">消费: ${location.consumption} (${location.consumptionSource})</p>
-                    ${location.img ? `<img src="${location.img}" alt="${location.name}">` : ''}
-                </div>
-            `;
-        });
+        if (day.attractions && day.attractions.length > 0) {
+            planHTML += `<h4>景点</h4>`;
+            day.attractions.forEach(attraction => {
+                planHTML += `
+                    <div class="location">
+                        <h5>${attraction.name}</h5>
+                        <p><strong>门票:</strong> ${attraction.ticket_price}</p>
+                        <p>${attraction.introduction}</p>
+                        <p><strong>地址:</strong> ${attraction.address}</p>
+                    </div>
+                `;
+            });
+        }
+        
+        if (day.food && day.food.length > 0) {
+            planHTML += `<h4>餐饮</h4>`;
+            day.food.forEach(food => {
+                planHTML += `
+                    <div class="location">
+                        <h5>${food.name}</h5>
+                        <p><strong>人均:</strong> ${food.price_per_person}</p>
+                        <p><strong>推荐理由:</strong> ${food.recommendation}</p>
+                    </div>
+                `;
+            });
+        }
+        
+        if (day.activities && day.activities.length > 0) {
+            planHTML += `<h4>活动</h4>`;
+            day.activities.forEach(activity => {
+                planHTML += `
+                    <div class="location">
+                        <h5>${activity.name}</h5>
+                        <p><strong>费用:</strong> ${activity.cost}</p>
+                        <p>${activity.description}</p>
+                    </div>
+                `;
+            });
+        }
         
         planHTML += `</div>`;
     });

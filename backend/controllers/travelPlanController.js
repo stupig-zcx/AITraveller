@@ -11,9 +11,9 @@ async function saveTravelPlan(req, res) {
       .insert([
         {
           user_id: userId,
-          title: travelPlan.Title,
-          total_consumption: travelPlan.totalConsumption,
-          days_detail: travelPlan.DaysDetail,
+          title: travelPlan.title,
+          total_consumption: travelPlan.total_consumption,
+          days_detail: travelPlan.days_detail,
           created_at: new Date()
         }
       ])
@@ -86,9 +86,9 @@ async function updateTravelPlan(req, res) {
     const { data, error } = await supabase
       .from('travel_plans')
       .update({
-        title: travelPlan.Title,
-        total_consumption: travelPlan.totalConsumption,
-        days_detail: travelPlan.DaysDetail,
+        title: travelPlan.title,
+        total_consumption: travelPlan.total_consumption,
+        days_detail: travelPlan.days_detail,
         updated_at: new Date()
       })
       .eq('id', planId)

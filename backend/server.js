@@ -9,6 +9,9 @@ dotenv.config();
 const authRoutes = require('./routes/authRoutes');
 const travelPlanRoutes = require('./routes/travelPlanRoutes');
 
+// Supabase客户端
+const supabase = require('./supabaseClient');
+
 // 创建 Express 应用
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,6 +27,30 @@ app.use('/api/travel-plans', travelPlanRoutes);
 // 测试路由
 app.get('/api/test', (req, res) => {
   res.json({ message: '后端服务连接成功!' });
+});
+
+// Supabase测试路由
+app.get('/api/test-supabase', async (req, res) => {
+  try {
+    // 测试数据库连接 - 尝试获取旅行计划表中的记录
+    const { data, error, count } = await supabase
+      .from('travel_plans')
+      .select('*', { count: 'exact' });
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+    
+    res.json({ 
+      message: 'Supabase连接成功', 
+      recordCount: count,
+      data: data.slice(0, 3) // 只返回前3条记录以避免数据过多
+    });
+  } catch (error) {
+    console.error('Error testing Supabase connection:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 基本路由
