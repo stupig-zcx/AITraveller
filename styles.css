@@ -226,8 +226,7 @@ button:disabled {
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.9rem;
-    float: right;
-    margin-top: 1rem;
+    margin-left: 0.5rem;
 }
 
 .back-button:hover {
@@ -393,6 +392,60 @@ button:disabled {
 .transportation {
     color: #6c757d;
     font-style: italic;
+}
+
+/* 新增样式：历史记录页面 */
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.history-header h2 {
+    margin: 0;
+}
+
+.history-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.history-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+.history-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.history-card h3 {
+    color: #603ab5;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
+.history-card p {
+    margin: 0.5rem 0;
+    color: #666;
+}
+
+.history-card .plan-date {
+    font-size: 0.9rem;
+    color: #999;
+}
+
+.history-card .plan-cost {
+    font-weight: bold;
+    color: #603ab5;
 }
 
 /* 历史记录项样式 */

@@ -9,6 +9,10 @@ const historyBtn = document.getElementById('history-btn'); // 添加历史记录
 const historyModal = document.getElementById('history-modal'); // 添加历史记录模态框
 const historyList = document.getElementById('history-list'); // 添加历史记录列表
 
+// 新增历史记录页面元素
+const historySection = document.getElementById('history-section');
+const historyCardsContainer = document.getElementById('history-cards-container');
+
 // 新的登录/注册元素
 const authSection = document.getElementById('auth-section');
 const directLoginForm = document.getElementById('direct-login-form');
@@ -102,7 +106,7 @@ function setupEventListeners() {
     if (historyBtn) {
         historyBtn.addEventListener('click', () => {
             console.log('History button clicked');
-            showHistory();
+            showHistoryPage();
         });
     } else {
         console.error('historyBtn not found');
@@ -118,6 +122,30 @@ function setupEventListeners() {
         });
     } else {
         console.error('backToFormBtn not found');
+    }
+    
+    // Back to history button
+    const backToHistoryBtn = document.getElementById('back-to-history');
+    if (backToHistoryBtn) {
+        backToHistoryBtn.addEventListener('click', () => {
+            console.log('Back to history button clicked');
+            planSection.classList.add('hidden');
+            historySection.classList.remove('hidden');
+        });
+    } else {
+        console.error('backToHistoryBtn not found');
+    }
+    
+    // Back to welcome button
+    const backToWelcomeBtn = document.getElementById('back-to-welcome');
+    if (backToWelcomeBtn) {
+        backToWelcomeBtn.addEventListener('click', () => {
+            console.log('Back to welcome button clicked');
+            historySection.classList.add('hidden');
+            welcomeSection.classList.remove('hidden');
+        });
+    } else {
+        console.error('backToWelcomeBtn not found');
     }
     
     // Show register form (direct)
@@ -239,16 +267,30 @@ function updateAuthUI() {
         if (welcomeSection) {
             welcomeSection.classList.remove('hidden');
         }
+        
+        // Also hide other sections
+        if (historySection) {
+            historySection.classList.add('hidden');
+        }
+        if (planSection) {
+            planSection.classList.add('hidden');
+        }
     } else {
         // User is not logged in
         historyBtn.style.display = 'none'; // 隐藏历史记录按钮
         
-        // Show auth section and hide welcome section
+        // Show auth section and hide other sections
         if (authSection) {
             authSection.classList.remove('hidden');
         }
         if (welcomeSection) {
             welcomeSection.classList.add('hidden');
+        }
+        if (historySection) {
+            historySection.classList.add('hidden');
+        }
+        if (planSection) {
+            planSection.classList.add('hidden');
         }
     }
 }
@@ -935,8 +977,8 @@ async function fetchUserTravelPlans() {
     }
 }
 
-// 显示历史记录
-async function showHistory() {
+// 显示历史记录页面
+async function showHistoryPage() {
     if (!currentUser) {
         alert('请先登录以查看历史记录');
         return;
@@ -946,43 +988,51 @@ async function showHistory() {
     await fetchUserTravelPlans();
     console.log('Fetched user travel plans for history display:', userTravelPlans);
 
-    if (!historyModal || !historyList) {
-        console.error('History modal or list not found');
-        return;
-    }
-
-    // 清空历史记录列表
-    historyList.innerHTML = '';
+    // 清空历史记录容器
+    historyCardsContainer.innerHTML = '';
 
     if (!userTravelPlans || userTravelPlans.length === 0) {
-        historyList.innerHTML = '<p>暂无历史旅行计划</p>';
+        historyCardsContainer.innerHTML = '<p>暂无历史旅行计划</p>';
     } else {
-        // 创建历史记录列表
+        // 创建历史记录卡片
         const historyHTML = userTravelPlans.map(plan => `
-            <div class="history-item" data-plan-id="${plan.id}">
+            <div class="history-card" data-plan-id="${plan.id}">
                 <h3>${plan.title}</h3>
-                <p>总消费: ${plan.total_consumption}</p>
-                <p>创建时间: ${new Date(plan.created_at).toLocaleString()}</p>
-                <button class="view-plan-btn" data-plan-id="${plan.id}">查看详细</button>
+                <p class="plan-cost">总消费: ${plan.total_consumption}</p>
+                <p class="plan-date">创建时间: ${new Date(plan.created_at).toLocaleString()}</p>
             </div>
         `).join('');
 
-        historyList.innerHTML = historyHTML;
+        historyCardsContainer.innerHTML = historyHTML;
 
-        // 为每个"查看详细"按钮添加事件监听器
-        document.querySelectorAll('.view-plan-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const planId = e.target.getAttribute('data-plan-id');
-                viewDetailedPlan(planId);
+        // 为每个卡片添加点击事件监听器
+        document.querySelectorAll('.history-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const planId = e.currentTarget.getAttribute('data-plan-id');
+                viewDetailedPlanFromHistory(planId);
             });
         });
     }
 
-    // 显示历史记录模态框
-    historyModal.classList.remove('hidden');
+    // 隐藏欢迎页面并显示历史记录页面
+    welcomeSection.classList.add('hidden');
+    historySection.classList.remove('hidden');
 }
 
-// 查看详细计划
+// 从历史记录查看详细计划
+function viewDetailedPlanFromHistory(planId) {
+    const plan = userTravelPlans.find(p => p.id === planId);
+    if (plan) {
+        // 显示旅行计划
+        displayTravelPlan(plan);
+        
+        // 切换到计划展示区域
+        historySection.classList.add('hidden');
+        planSection.classList.remove('hidden');
+    }
+}
+
+// 查看详细计划（从模态框）
 function viewDetailedPlan(planId) {
     const plan = userTravelPlans.find(p => p.id === planId);
     if (plan) {

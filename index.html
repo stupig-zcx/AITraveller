@@ -88,19 +88,25 @@
             <section id="plan-section" class="hidden">
                 <div class="plan-header">
                     <h2>您的旅行计划</h2>
-                    <button id="back-to-form" class="back-button">← 返回查询页面</button>
+                    <div>
+                        <button id="back-to-history" class="back-button">← 返回历史记录</button>
+                        <button id="back-to-form" class="back-button">← 返回查询页面</button>
+                    </div>
                 </div>
                 <div id="travel-plan"></div>
             </section>
             
-            <!-- 历史记录模态框 -->
-            <div id="history-modal" class="modal hidden">
-                <div class="modal-content history-content">
-                    <span class="close">&times;</span>
+            <!-- 历史记录页面 -->
+            <section id="history-section" class="hidden">
+                <div class="history-header">
                     <h2>历史旅行计划</h2>
-                    <div id="history-list"></div>
+                    <button id="back-to-welcome" class="back-button">← 返回查询页面</button>
                 </div>
-            </div>
+                <div id="history-cards-container" class="history-cards"></div>
+            </section>
+
+            <!-- 历史记录模态框 -->
+
         </main>
 
         <div id="settings-modal" class="modal hidden">
