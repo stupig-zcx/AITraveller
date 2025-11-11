@@ -11,6 +11,7 @@
         <header>
             <h1>智能旅游规划助手</h1>
             <nav>
+                <button id="history-btn" style="display: none;">历史记录</button>
                 <button id="login-btn">登录</button>
                 <button id="register-btn">注册</button>
                 <button id="settings-btn">设置</button>
@@ -55,6 +56,15 @@
                 <h2>您的旅行计划</h2>
                 <div id="travel-plan"></div>
             </section>
+            
+            <!-- 历史记录模态框 -->
+            <div id="history-modal" class="modal hidden">
+                <div class="modal-content history-content">
+                    <span class="close">&times;</span>
+                    <h2>历史旅行计划</h2>
+                    <div id="history-list"></div>
+                </div>
+            </div>
         </main>
 
         <div id="settings-modal" class="modal hidden">

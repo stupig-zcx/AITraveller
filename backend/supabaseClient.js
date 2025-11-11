@@ -62,6 +62,17 @@ console.log('Supabase URL:', supabaseUrl);
 console.log('Supabase Key exists:', !!supabaseKey);
 
 // 创建Supabase客户端实例
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  global: {
+    headers: {
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`
+    }
+  },
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
 module.exports = supabase;

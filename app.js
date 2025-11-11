@@ -10,12 +10,16 @@ const loginBtn = document.getElementById('login-btn');
 const registerBtn = document.getElementById('register-btn');
 const startVoiceBtn = document.getElementById('start-voice-btn');
 const stopVoiceBtn = document.getElementById('stop-voice-btn');
+const historyBtn = document.getElementById('history-btn'); // 添加历史记录按钮
+const historyModal = document.getElementById('history-modal'); // 添加历史记录模态框
+const historyList = document.getElementById('history-list'); // 添加历史记录列表
 
 // 添加调试日志
 console.log('DOM Elements:');
 console.log('settingsBtn:', settingsBtn);
 console.log('loginBtn:', loginBtn);
 console.log('registerBtn:', registerBtn);
+console.log('historyBtn:', historyBtn);
 
 // Modal close buttons
 const closeButtons = document.querySelectorAll('.close');
@@ -107,6 +111,16 @@ function setupEventListeners() {
         console.error('settingsBtn not found');
     }
     
+    // History modal
+    if (historyBtn) {
+        historyBtn.addEventListener('click', () => {
+            console.log('History button clicked');
+            showHistory();
+        });
+    } else {
+        console.error('historyBtn not found');
+    }
+    
     // Auth modals
     if (loginBtn) {
         loginBtn.addEventListener('click', () => {
@@ -177,6 +191,7 @@ function setupEventListeners() {
                 console.log('Close button clicked');
                 if (settingsModal) settingsModal.classList.add('hidden');
                 if (authModal) authModal.classList.add('hidden');
+                if (historyModal) historyModal.classList.add('hidden'); // 添加历史记录模态框关闭
             });
         });
     } else {
@@ -190,6 +205,9 @@ function setupEventListeners() {
         }
         if (authModal && e.target === authModal) {
             authModal.classList.add('hidden');
+        }
+        if (historyModal && e.target === historyModal) {
+            historyModal.classList.add('hidden');
         }
     });
     
@@ -247,10 +265,12 @@ function updateAuthUI() {
         // User is logged in
         loginBtn.textContent = `欢迎, ${currentUser.username}`;  // 使用用户名而不是邮箱
         registerBtn.style.display = 'none';
+        historyBtn.style.display = 'inline-block'; // 显示历史记录按钮
     } else {
         // User is not logged in
         loginBtn.textContent = '登录';
         registerBtn.style.display = 'inline-block';
+        historyBtn.style.display = 'none'; // 隐藏历史记录按钮
     }
 }
 
@@ -271,11 +291,13 @@ async function handleLogin(e) {
             body: JSON.stringify({ username, password })  // 使用username而不是email
         });
         
-        const data = await response.json();
-        
+        // 检查响应状态
         if (!response.ok) {
-            throw new Error(data.error || '登录失败');
+            const errorData = await response.json();
+            throw new Error(errorData.error || '登录失败');
         }
+        
+        const data = await response.json();
         
         currentUser = {
             id: data.user.id,
@@ -294,7 +316,7 @@ async function handleLogin(e) {
         alert('登录成功!');
     } catch (error) {
         console.error('Login error:', error);
-        alert(error.message);
+        alert('登录失败: ' + error.message);
     }
 }
 
@@ -315,11 +337,13 @@ async function handleRegister(e) {
             body: JSON.stringify({ username, password })  // 使用username而不是email
         });
         
-        const data = await response.json();
-        
+        // 检查响应状态
         if (!response.ok) {
-            throw new Error(data.error || '注册失败');
+            const errorData = await response.json();
+            throw new Error(errorData.error || '注册失败');
         }
+        
+        const data = await response.json();
         
         alert('注册成功! 请登录您的账户。');
         
@@ -328,7 +352,7 @@ async function handleRegister(e) {
         loginFormDiv.classList.remove('hidden');
     } catch (error) {
         console.error('Registration error:', error);
-        alert(error.message);
+        alert('注册失败: ' + error.message);
     }
 }
 
@@ -361,9 +385,13 @@ async function handleTravelFormSubmit(e) {
         
         // Save travel plan to backend if user is logged in
         if (currentUser) {
-            await saveTravelPlanToBackend(travelPlan);
+            console.log('User is logged in, saving travel plan...');
+            const saveResult = await saveTravelPlanToBackend(travelPlan);
+            console.log('Save result:', saveResult);
             // Refresh user's travel plans
             await fetchUserTravelPlans();
+        } else {
+            console.log('User is not logged in, not saving travel plan');
         }
         
         // Switch to plan section
@@ -603,10 +631,14 @@ function displayTravelPlan(plan) {
 // Save travel plan to backend
 async function saveTravelPlanToBackend(travelPlan) {
     try {
+        console.log('Saving travel plan to backend for user:', currentUser.id);
+        console.log('Travel plan data:', travelPlan);
+        
         const response = await fetch(`${API_BASE_URL}/travel-plans`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s'
             },
             body: JSON.stringify({
                 userId: currentUser.id,
@@ -614,14 +646,20 @@ async function saveTravelPlanToBackend(travelPlan) {
             })
         });
         
+        console.log('Save travel plan response status:', response.status);
+        
         if (!response.ok) {
-            throw new Error('Failed to save travel plan');
+            const errorText = await response.text();
+            console.error('Failed to save travel plan. Error response:', errorText);
+            throw new Error(`Failed to save travel plan: ${errorText}`);
         }
         
         const result = await response.json();
-        console.log('Travel plan saved:', result);
+        console.log('Travel plan saved successfully:', result);
+        return result;
     } catch (error) {
         console.error('Error saving travel plan:', error);
+        alert('保存旅行计划时出错: ' + error.message);
     }
 }
 
@@ -750,16 +788,80 @@ async function fetchUserTravelPlans() {
     if (!currentUser) return;
     
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/profile/${currentUser.id}`);
+        console.log('Fetching travel plans for user:', currentUser.id);
+        const response = await fetch(`${API_BASE_URL}/travel-plans/${currentUser.id}`);
         const data = await response.json();
         
         if (!response.ok) {
             throw new Error(data.error || '获取用户信息失败');
         }
         
-        userTravelPlans = data.user.travelPlans || [];
+        userTravelPlans = data.plans || [];
         console.log('User travel plans:', userTravelPlans);
     } catch (error) {
         console.error('Error fetching user travel plans:', error);
+    }
+}
+
+// 显示历史记录
+async function showHistory() {
+    if (!currentUser) {
+        alert('请先登录以查看历史记录');
+        return;
+    }
+
+    // 获取最新的用户旅行计划
+    await fetchUserTravelPlans();
+    console.log('Fetched user travel plans for history display:', userTravelPlans);
+
+    if (!historyModal || !historyList) {
+        console.error('History modal or list not found');
+        return;
+    }
+
+    // 清空历史记录列表
+    historyList.innerHTML = '';
+
+    if (!userTravelPlans || userTravelPlans.length === 0) {
+        historyList.innerHTML = '<p>暂无历史旅行计划</p>';
+    } else {
+        // 创建历史记录列表
+        const historyHTML = userTravelPlans.map(plan => `
+            <div class="history-item" data-plan-id="${plan.id}">
+                <h3>${plan.title}</h3>
+                <p>总消费: ${plan.total_consumption}</p>
+                <p>创建时间: ${new Date(plan.created_at).toLocaleString()}</p>
+                <button class="view-plan-btn" data-plan-id="${plan.id}">查看详细</button>
+            </div>
+        `).join('');
+
+        historyList.innerHTML = historyHTML;
+
+        // 为每个"查看详细"按钮添加事件监听器
+        document.querySelectorAll('.view-plan-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const planId = e.target.getAttribute('data-plan-id');
+                viewDetailedPlan(planId);
+            });
+        });
+    }
+
+    // 显示历史记录模态框
+    historyModal.classList.remove('hidden');
+}
+
+// 查看详细计划
+function viewDetailedPlan(planId) {
+    const plan = userTravelPlans.find(p => p.id === planId);
+    if (plan) {
+        // 隐藏历史记录模态框
+        historyModal.classList.add('hidden');
+        
+        // 显示旅行计划
+        displayTravelPlan(plan);
+        
+        // 切换到计划展示区域
+        welcomeSection.classList.add('hidden');
+        planSection.classList.remove('hidden');
     }
 }

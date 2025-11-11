@@ -198,47 +198,30 @@ async function getUserProfile(req, res) {
     console.log('Get user profile attempt:', { userId });
     
     // 获取用户基本信息
-    const userResponse = await supabaseFetch(`users?id=eq.${userId}`);
-    console.log('Get user response status:', userResponse.status);
-    if (!userResponse.ok) {
-      const errorText = await userResponse.text();
-      console.log('Get user error response:', errorText);
-      let errorData;
-      try {
-        errorData = JSON.parse(errorText);
-      } catch (e) {
-        errorData = { message: errorText || 'Unknown error' };
-      }
-      return res.status(400).json({ error: errorData.message });
-    }
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId);
     
-    const userData = await userResponse.json();
     console.log('Get user data:', userData);
-    if (!userData || userData.length === 0) {
-      return res.status(400).json({ error: '用户不存在' });
+    if (userError || !userData || userData.length === 0) {
+      const errorMessage = userError ? userError.message : '用户不存在';
+      return res.status(400).json({ error: errorMessage });
     }
     
     // 获取用户的旅游计划
-    const plansResponse = await supabaseFetch(`travel_plans?user_id=eq.${userId}&order=created_at.desc`);
-    console.log('Get plans response status:', plansResponse.status);
-    if (!plansResponse.ok) {
-      const errorText = await plansResponse.text();
-      console.log('Get plans error response:', errorText);
-      let errorData;
-      try {
-        errorData = JSON.parse(errorText);
-      } catch (e) {
-        errorData = { message: errorText || 'Unknown error' };
-      }
-      return res.status(400).json({ error: errorData.message });
-    }
+    const { data: plansData, error: plansError } = await supabase
+      .from('travel_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
     
-    const plansData = await plansResponse.json();
     console.log('Get plans data:', plansData);
     
-    // 构建用户对象
-    const user = new User(userData[0].id, userData[0].username, null);
-    user.travelPlans = plansData;
+    if (plansError) {
+      console.error('Get plans error:', plansError);
+      return res.status(400).json({ error: plansError.message });
+    }
     
     return res.status(200).json({ 
       user: {
@@ -250,7 +233,7 @@ async function getUserProfile(req, res) {
     });
   } catch (error) {
     console.error('Get user profile error:', error);
-    return res.status(500).json({ error: '服务器内部错误' });
+    return res.status(500).json({ error: '服务器内部错误: ' + error.message });
   }
 }
 

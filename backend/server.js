@@ -53,6 +53,44 @@ app.get('/api/test-supabase', async (req, res) => {
   }
 });
 
+// 获取数据库表结构信息
+app.get('/api/schema-info', async (req, res) => {
+  try {
+    // 获取users表结构
+    const { data: usersData, error: usersError } = await supabase
+      .from('users')
+      .select('*')
+      .limit(1);
+    
+    if (usersError) {
+      console.error('Users table error:', usersError);
+      return res.status(500).json({ error: usersError.message });
+    }
+    
+    // 获取travel_plans表结构
+    const { data: plansData, error: plansError } = await supabase
+      .from('travel_plans')
+      .select('*')
+      .limit(1);
+    
+    if (plansError) {
+      console.error('Travel plans table error:', plansError);
+      return res.status(500).json({ error: plansError.message });
+    }
+    
+    res.json({ 
+      message: '数据库表结构信息获取成功',
+      usersTable: usersData.length > 0 ? Object.keys(usersData[0]) : [],
+      travelPlansTable: plansData.length > 0 ? Object.keys(plansData[0]) : [],
+      usersSample: usersData,
+      plansSample: plansData
+    });
+  } catch (error) {
+    console.error('Error getting schema info:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 基本路由
 app.get('/', (req, res) => {
   res.json({ message: '旅游规划助手后端服务已启动' });
@@ -62,3 +100,5 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`服务器运行在端口 ${PORT}`);
 });
+
+module.exports = app;
