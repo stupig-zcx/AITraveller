@@ -407,8 +407,9 @@ async function generateTravelPlan(destination, days, budget, preferences) {
       "days_detail": [
         {
           "date": "日期（YYYY-MM-DD）",
-          "transportation": "交通方式",
+          "transportation": "当日交通方式汇总",
           "accommodation": "住宿信息",
+          "accommodation_cost": "住宿费用（人民币）",
           "attractions": [
             {
               "name": "景点名称",
@@ -468,8 +469,9 @@ async function generateTravelPlan(destination, days, budget, preferences) {
   "days_detail": [
     {
       "date": "日期（YYYY-MM-DD）",
-      "transportation": "交通方式",
-      "accommodation": "住宿信息",
+      "transportation": "当日交通方式汇总",
+      "accommodation": "住宿地点和信息",
+      "accommodation_cost": "住宿费用（人民币）",
       "attractions": [
         {
           "name": "景点名称",
@@ -510,8 +512,9 @@ async function generateTravelPlan(destination, days, budget, preferences) {
 2. total_consumption: 整个旅行的预估总消费，以人民币为单位
 3. days_detail: 按日期排列的详细行程安排数组
    - date: 当天日期，格式为 YYYY-MM-DD
-   - transportation: 当日使用的交通方式（如飞机、火车、公交、出租车等）
+   - transportation: 当日交通方式汇总
    - accommodation: 住宿地点和信息
+   - accommodation_cost: 住宿费用（人民币）
    - attractions: 访问的景点列表
      - name: 景点名称
      - time: 游览时间（如10:00）
@@ -542,7 +545,8 @@ async function generateTravelPlan(destination, days, budget, preferences) {
 4. 根据用户输入的预算合理分配各项开支
 5. 行程安排应考虑时间和地理位置的合理性
 6. 每个地点必须包含时间（time）和交通方式（transportation）信息
-7. 每个地点应包含交通费用（transportation_cost）信息`
+7. 每个地点应包含交通费用（transportation_cost）信息
+8. 每天的住宿信息应包含住宿费用（accommodation_cost）`
                 },
                 { role: "user", content: prompt }
             ],
@@ -595,17 +599,16 @@ function displayTravelPlan(plan) {
         
         // 显示住宿信息和费用
         if (day.accommodation) {
-            // 尝试从住宿信息中提取费用
-            let accommodationCost = '0';
-            const costMatch = day.accommodation.match(/(\d+(?:\.\d+)?)\s*元/);
-            if (costMatch) {
-                accommodationCost = costMatch[1];
+            let accommodationInfo = `<strong>住宿：</strong>${day.accommodation}`;
+            
+            // 如果有住宿费用信息，则显示费用
+            if (day.accommodation_cost) {
+                accommodationInfo += ` <span class="accommodation-cost">费用: ${day.accommodation_cost}元</span>`;
             }
             
             planHTML += `
                 <div class="accommodation-info">
-                    <strong>住宿：</strong>${day.accommodation}
-                    <span class="accommodation-cost">费用: ${accommodationCost}元</span>
+                    ${accommodationInfo}
                 </div>
             `;
         }
@@ -615,7 +618,7 @@ function displayTravelPlan(plan) {
             planHTML += `
                 <div class="day-info">
                     <div class="day-info-item">
-                        <strong>交通方式：</strong>${day.transportation}
+                        <strong>当日交通方式：</strong>${day.transportation}
                     </div>
                 </div>
             `;
