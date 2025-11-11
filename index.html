@@ -12,14 +12,47 @@
             <h1>智能旅游规划助手</h1>
             <nav>
                 <button id="history-btn" style="display: none;">历史记录</button>
-                <button id="login-btn">登录</button>
-                <button id="register-btn">注册</button>
                 <button id="settings-btn">设置</button>
             </nav>
         </header>
 
         <main>
-            <section id="welcome-section">
+            <!-- 登录表单直接显示在屏幕中央 -->
+            <section id="auth-section" class="auth-center">
+                <div id="login-form-direct">
+                    <h2>用户登录</h2>
+                    <form id="direct-login-form">
+                        <div class="form-group">
+                            <label for="direct-login-username">用户名:</label>
+                            <input type="text" id="direct-login-username" required placeholder="请输入用户名">
+                        </div>
+                        <div class="form-group">
+                            <label for="direct-login-password">密码:</label>
+                            <input type="password" id="direct-login-password" required placeholder="请输入密码">
+                        </div>
+                        <button type="submit" class="auth-button">登录</button>
+                        <button type="button" id="show-register-direct" class="secondary-button">注册新账户</button>
+                    </form>
+                </div>
+                
+                <div id="register-form-direct" class="hidden">
+                    <h2>用户注册</h2>
+                    <form id="direct-register-form">
+                        <div class="form-group">
+                            <label for="direct-register-username">用户名:</label>
+                            <input type="text" id="direct-register-username" required placeholder="请输入用户名">
+                        </div>
+                        <div class="form-group">
+                            <label for="direct-register-password">密码:</label>
+                            <input type="password" id="direct-register-password" required placeholder="请输入密码">
+                        </div>
+                        <button type="submit" class="auth-button">注册</button>
+                        <button type="button" id="show-login-direct" class="secondary-button">已有账户登录</button>
+                    </form>
+                </div>
+            </section>
+
+            <section id="welcome-section" class="hidden">
                 <h2>开始您的智能旅行规划</h2>
                 <form id="travel-form">
                     <div class="form-group">
@@ -53,7 +86,10 @@
             </section>
 
             <section id="plan-section" class="hidden">
-                <h2>您的旅行计划</h2>
+                <div class="plan-header">
+                    <h2>您的旅行计划</h2>
+                    <button id="back-to-form" class="back-button">← 返回查询页面</button>
+                </div>
                 <div id="travel-plan"></div>
             </section>
             
@@ -79,43 +115,6 @@
                     <!-- 移除Supabase配置项，这些应该在服务端管理 -->
                     <button type="submit">保存设置</button>
                 </form>
-            </div>
-        </div>
-
-        <div id="auth-modal" class="modal hidden">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <div id="login-form">
-                    <h2>登录</h2>
-                    <form>
-                        <div class="form-group">
-                            <label for="login-email">用户名:</label>
-                            <input type="text" id="login-email" required placeholder="请输入用户名">
-                        </div>
-                        <div class="form-group">
-                            <label for="login-password">密码:</label>
-                            <input type="password" id="login-password" required placeholder="请输入密码">
-                        </div>
-                        <button type="submit">登录</button>
-                    </form>
-                    <p>还没有账户? <a href="#" id="show-register">注册</a></p>
-                </div>
-                
-                <div id="register-form" class="hidden">
-                    <h2>注册</h2>
-                    <form>
-                        <div class="form-group">
-                            <label for="register-email">用户名:</label>
-                            <input type="text" id="register-email" required placeholder="请输入用户名">
-                        </div>
-                        <div class="form-group">
-                            <label for="register-password">密码:</label>
-                            <input type="password" id="register-password" required placeholder="请输入密码">
-                        </div>
-                        <button type="submit">注册</button>
-                    </form>
-                    <p>已有账户? <a href="#" id="show-login">登录</a></p>
-                </div>
             </div>
         </div>
     </div>

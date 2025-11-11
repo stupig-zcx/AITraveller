@@ -4,22 +4,17 @@ const welcomeSection = document.getElementById('welcome-section');
 const planSection = document.getElementById('plan-section');
 const travelPlanDiv = document.getElementById('travel-plan');
 const settingsModal = document.getElementById('settings-modal');
-const authModal = document.getElementById('auth-modal');
 const settingsBtn = document.getElementById('settings-btn');
-const loginBtn = document.getElementById('login-btn');
-const registerBtn = document.getElementById('register-btn');
-const startVoiceBtn = document.getElementById('start-voice-btn');
-const stopVoiceBtn = document.getElementById('stop-voice-btn');
 const historyBtn = document.getElementById('history-btn'); // 添加历史记录按钮
 const historyModal = document.getElementById('history-modal'); // 添加历史记录模态框
 const historyList = document.getElementById('history-list'); // 添加历史记录列表
 
-// 添加调试日志
-console.log('DOM Elements:');
-console.log('settingsBtn:', settingsBtn);
-console.log('loginBtn:', loginBtn);
-console.log('registerBtn:', registerBtn);
-console.log('historyBtn:', historyBtn);
+// 新的登录/注册元素
+const authSection = document.getElementById('auth-section');
+const directLoginForm = document.getElementById('direct-login-form');
+const directRegisterForm = document.getElementById('direct-register-form');
+const showRegisterDirect = document.getElementById('show-register-direct');
+const showLoginDirect = document.getElementById('show-login-direct');
 
 // Modal close buttons
 const closeButtons = document.querySelectorAll('.close');
@@ -27,14 +22,6 @@ const closeButtons = document.querySelectorAll('.close');
 // Settings form elements
 const settingsForm = document.getElementById('settings-form');
 const deepseekApiKeyInput = document.getElementById('deepseek-api-key');
-
-// Auth form elements
-const showRegisterLink = document.getElementById('show-register');
-const showLoginLink = document.getElementById('show-login');
-const loginFormDiv = document.getElementById('login-form');
-const registerFormDiv = document.getElementById('register-form');
-const loginForm = loginFormDiv.querySelector('form');
-const registerForm = registerFormDiv.querySelector('form');
 
 // Speech recognition variables
 let recognition;
@@ -121,67 +108,48 @@ function setupEventListeners() {
         console.error('historyBtn not found');
     }
     
-    // Auth modals
-    if (loginBtn) {
-        loginBtn.addEventListener('click', () => {
-            console.log('Login button clicked');
-            if (authModal && loginFormDiv && registerFormDiv) {
-                authModal.classList.remove('hidden');
-                loginFormDiv.classList.remove('hidden');
-                registerFormDiv.classList.add('hidden');
-            } else {
-                console.error('One or more auth elements not found');
-            }
+    // Back to form button
+    const backToFormBtn = document.getElementById('back-to-form');
+    if (backToFormBtn) {
+        backToFormBtn.addEventListener('click', () => {
+            console.log('Back to form button clicked');
+            planSection.classList.add('hidden');
+            welcomeSection.classList.remove('hidden');
         });
     } else {
-        console.error('loginBtn not found');
+        console.error('backToFormBtn not found');
     }
     
-    if (registerBtn) {
-        registerBtn.addEventListener('click', () => {
-            console.log('Register button clicked');
-            if (authModal && loginFormDiv && registerFormDiv) {
-                authModal.classList.remove('hidden');
-                loginFormDiv.classList.add('hidden');
-                registerFormDiv.classList.remove('hidden');
-            } else {
-                console.error('One or more auth elements not found');
-            }
-        });
-    } else {
-        console.error('registerBtn not found');
-    }
-    
-    // Show register form
-    if (showRegisterLink) {
-        showRegisterLink.addEventListener('click', (e) => {
+    // Show register form (direct)
+    if (showRegisterDirect) {
+        showRegisterDirect.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('Show register link clicked');
-            if (loginFormDiv && registerFormDiv) {
-                loginFormDiv.classList.add('hidden');
-                registerFormDiv.classList.remove('hidden');
+            console.log('Show register direct clicked');
+            if (directLoginForm && directRegisterForm) {
+                directLoginForm.closest('div').classList.add('hidden');
+                directRegisterForm.closest('div').classList.remove('hidden');
             } else {
-                console.error('Form divs not found');
+                console.error('Direct form divs not found');
             }
         });
     } else {
-        console.error('showRegisterLink not found');
+        console.error('showRegisterDirect not found');
     }
     
-    // Show login form
-    if (showLoginLink) {
-        showLoginLink.addEventListener('click', (e) => {
+    // Show login form (direct)
+    if (showLoginDirect) {
+        showLoginDirect.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log('Show login link clicked');
-            if (registerFormDiv && loginFormDiv) {
-                registerFormDiv.classList.add('hidden');
-                loginFormDiv.classList.remove('hidden');
+            console.log('Show login direct clicked');
+            if (directRegisterForm && directLoginForm) {
+                directRegisterForm.closest('div').classList.add('hidden');
+                directLoginForm.closest('div').classList.remove('hidden');
             } else {
-                console.error('Form divs not found');
+                console.error('Direct form divs not found');
             }
         });
     } else {
-        console.error('showLoginLink not found');
+        console.error('showLoginDirect not found');
     }
     
     // Close modals
@@ -190,8 +158,7 @@ function setupEventListeners() {
             button.addEventListener('click', () => {
                 console.log('Close button clicked');
                 if (settingsModal) settingsModal.classList.add('hidden');
-                if (authModal) authModal.classList.add('hidden');
-                if (historyModal) historyModal.classList.add('hidden'); // 添加历史记录模态框关闭
+                if (historyModal) historyModal.classList.add('hidden');
             });
         });
     } else {
@@ -202,9 +169,6 @@ function setupEventListeners() {
     window.addEventListener('click', (e) => {
         if (settingsModal && e.target === settingsModal) {
             settingsModal.classList.add('hidden');
-        }
-        if (authModal && e.target === authModal) {
-            authModal.classList.add('hidden');
         }
         if (historyModal && e.target === historyModal) {
             historyModal.classList.add('hidden');
@@ -218,21 +182,24 @@ function setupEventListeners() {
         console.error('settingsForm not found');
     }
     
-    // Auth form submissions
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
+    // Direct auth form submissions
+    if (directLoginForm) {
+        directLoginForm.addEventListener('submit', handleDirectLogin);
     } else {
-        console.error('loginForm not found');
+        console.error('directLoginForm not found');
     }
     
-    if (registerForm) {
-        registerForm.addEventListener('submit', handleRegister);
+    if (directRegisterForm) {
+        directRegisterForm.addEventListener('submit', handleDirectRegister);
     } else {
-        console.error('registerForm not found');
+        console.error('directRegisterForm not found');
     }
     
     // Voice recognition buttons
     if (supportsSpeechRecognition) {
+        const startVoiceBtn = document.getElementById('start-voice-btn');
+        const stopVoiceBtn = document.getElementById('stop-voice-btn');
+        
         if (startVoiceBtn) {
             startVoiceBtn.addEventListener('click', startVoiceRecognition);
         } else {
@@ -263,23 +230,35 @@ function checkUserStatus() {
 function updateAuthUI() {
     if (currentUser) {
         // User is logged in
-        loginBtn.textContent = `欢迎, ${currentUser.username}`;  // 使用用户名而不是邮箱
-        registerBtn.style.display = 'none';
         historyBtn.style.display = 'inline-block'; // 显示历史记录按钮
+        
+        // Hide auth section and show welcome section
+        if (authSection) {
+            authSection.classList.add('hidden');
+        }
+        if (welcomeSection) {
+            welcomeSection.classList.remove('hidden');
+        }
     } else {
         // User is not logged in
-        loginBtn.textContent = '登录';
-        registerBtn.style.display = 'inline-block';
         historyBtn.style.display = 'none'; // 隐藏历史记录按钮
+        
+        // Show auth section and hide welcome section
+        if (authSection) {
+            authSection.classList.remove('hidden');
+        }
+        if (welcomeSection) {
+            welcomeSection.classList.add('hidden');
+        }
     }
 }
 
-// Handle login
-async function handleLogin(e) {
+// Handle direct login
+async function handleDirectLogin(e) {
     e.preventDefault();
     
-    const username = document.getElementById('login-email').value;  // 改为用户名
-    const password = document.getElementById('login-password').value;
+    const username = document.getElementById('direct-login-username').value;
+    const password = document.getElementById('direct-login-password').value;
     
     try {
         // 修改为使用用户名和密码登录
@@ -288,7 +267,7 @@ async function handleLogin(e) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ username, password })  // 使用username而不是email
+            body: JSON.stringify({ username, password })
         });
         
         // 检查响应状态
@@ -301,14 +280,11 @@ async function handleLogin(e) {
         
         currentUser = {
             id: data.user.id,
-            username: data.user.username  // 使用username而不是email
+            username: data.user.username
         };
         
         // 获取用户的旅游计划
         await fetchUserTravelPlans();
-        
-        // Close modal
-        authModal.classList.add('hidden');
         
         // Update UI
         updateAuthUI();
@@ -320,12 +296,12 @@ async function handleLogin(e) {
     }
 }
 
-// Handle registration
-async function handleRegister(e) {
+// Handle direct registration
+async function handleDirectRegister(e) {
     e.preventDefault();
     
-    const username = document.getElementById('register-email').value;  // 改为用户名
-    const password = document.getElementById('register-password').value;
+    const username = document.getElementById('direct-register-username').value;
+    const password = document.getElementById('direct-register-password').value;
     
     try {
         // 修改为使用用户名和密码注册
@@ -334,7 +310,7 @@ async function handleRegister(e) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ username, password })  // 使用username而不是email
+            body: JSON.stringify({ username, password })
         });
         
         // 检查响应状态
@@ -348,8 +324,8 @@ async function handleRegister(e) {
         alert('注册成功! 请登录您的账户。');
         
         // Switch to login form
-        registerFormDiv.classList.add('hidden');
-        loginFormDiv.classList.remove('hidden');
+        directRegisterForm.closest('div').classList.add('hidden');
+        directLoginForm.closest('div').classList.remove('hidden');
     } catch (error) {
         console.error('Registration error:', error);
         alert('注册失败: ' + error.message);
@@ -436,6 +412,9 @@ async function generateTravelPlan(destination, days, budget, preferences) {
           "attractions": [
             {
               "name": "景点名称",
+              "time": "游览时间（如10:00）",
+              "transportation": "前往该景点的交通方式",
+              "transportation_cost": "前往该景点的交通费用（人民币）",
               "ticket_price": "门票价格（人民币）",
               "introduction": "景点介绍",
               "address": "景点地址"
@@ -444,6 +423,9 @@ async function generateTravelPlan(destination, days, budget, preferences) {
           "food": [
             {
               "name": "餐厅或食物名称",
+              "time": "用餐时间（如12:30）",
+              "transportation": "前往餐厅的交通方式",
+              "transportation_cost": "前往餐厅的交通费用（人民币）",
               "price_per_person": "人均消费（人民币）",
               "recommendation": "推荐理由"
             }
@@ -451,7 +433,10 @@ async function generateTravelPlan(destination, days, budget, preferences) {
           "activities": [
             {
               "name": "活动名称",
-              "cost": "费用（人民币）",
+              "time": "活动时间（如15:00）",
+              "transportation": "前往活动地点的交通方式",
+              "transportation_cost": "前往活动地点的交通费用（人民币）",
+              "cost": "活动费用（人民币）",
               "description": "活动描述"
             }
           ]
@@ -488,6 +473,9 @@ async function generateTravelPlan(destination, days, budget, preferences) {
       "attractions": [
         {
           "name": "景点名称",
+          "time": "游览时间（如10:00）",
+          "transportation": "前往该景点的交通方式",
+          "transportation_cost": "前往该景点的交通费用（人民币）",
           "ticket_price": "景点门票价格",
           "introduction": "景点简要介绍",
           "address": "景点的具体地址"
@@ -496,14 +484,20 @@ async function generateTravelPlan(destination, days, budget, preferences) {
       "food": [
         {
           "name": "餐厅或食物名称",
+          "time": "用餐时间（如12:30）",
+          "transportation": "前往餐厅的交通方式",
+          "transportation_cost": "前往餐厅的交通费用（人民币）",
           "price_per_person": "人均消费",
-          "recommendation": "推荐理由"
+          "recommendation": "推荐原因"
         }
       ],
       "activities": [
         {
           "name": "活动名称",
-          "cost": "费用（人民币）",
+          "time": "活动时间（如15:00）",
+          "transportation": "前往活动地点的交通方式",
+          "transportation_cost": "前往活动地点的交通费用（人民币）",
+          "cost": "活动费用",
           "description": "活动描述"
         }
       ]
@@ -520,15 +514,24 @@ async function generateTravelPlan(destination, days, budget, preferences) {
    - accommodation: 住宿地点和信息
    - attractions: 访问的景点列表
      - name: 景点名称
+     - time: 游览时间（如10:00）
+     - transportation: 前往该景点的交通方式
+     - transportation_cost: 前往该景点的交通费用（人民币）
      - ticket_price: 景点门票价格
      - introduction: 景点简要介绍（不超过100字）
      - address: 景点的具体地址
    - food: 餐饮安排列表
      - name: 餐厅或特色食品名称
+     - time: 用餐时间（如12:30）
+     - transportation: 前往餐厅的交通方式
+     - transportation_cost: 前往餐厅的交通费用（人民币）
      - price_per_person: 人均消费
      - recommendation: 推荐原因（不超过50字）
    - activities: 其他活动安排
      - name: 活动名称
+     - time: 活动时间（如15:00）
+     - transportation: 前往活动地点的交通方式
+     - transportation_cost: 前往活动地点的交通费用（人民币）
      - cost: 活动费用
      - description: 活动简要描述
 
@@ -537,7 +540,9 @@ async function generateTravelPlan(destination, days, budget, preferences) {
 2. 保证JSON格式的有效性和完整性
 3. 内容需真实可靠，符合实际情况
 4. 根据用户输入的预算合理分配各项开支
-5. 行程安排应考虑时间和地理位置的合理性`
+5. 行程安排应考虑时间和地理位置的合理性
+6. 每个地点必须包含时间（time）和交通方式（transportation）信息
+7. 每个地点应包含交通费用（transportation_cost）信息`
                 },
                 { role: "user", content: prompt }
             ],
@@ -569,60 +574,180 @@ async function generateTravelPlan(destination, days, budget, preferences) {
 // Display travel plan
 function displayTravelPlan(plan) {
     let planHTML = `
-        <h2>${plan.title}</h2>
+        <h2 class="plan-title">${plan.title}</h2>
         <p class="consumption">总消费估算: ${plan.total_consumption}</p>
     `;
     
     plan.days_detail.forEach((day, index) => {
         planHTML += `
-            <div class="day">
-                <h3>第${index + 1}天</h3>
-                <p><strong>日期:</strong> ${day.date}</p>
-                <p><strong>交通:</strong> ${day.transportation}</p>
-                <p><strong>住宿:</strong> ${day.accommodation}</p>
+            <div class="day-card">
+                <div class="day-card-header">
+                    <h3>第${index + 1}天`;
+        
+        if (day.date) {
+            planHTML += ` (${day.date})`;
+        }
+        
+        planHTML += `</h3>
+                </div>
+                <div class="day-card-body">
         `;
         
+        // 显示住宿信息和费用
+        if (day.accommodation) {
+            // 尝试从住宿信息中提取费用
+            let accommodationCost = '0';
+            const costMatch = day.accommodation.match(/(\d+(?:\.\d+)?)\s*元/);
+            if (costMatch) {
+                accommodationCost = costMatch[1];
+            }
+            
+            planHTML += `
+                <div class="accommodation-info">
+                    <strong>住宿：</strong>${day.accommodation}
+                    <span class="accommodation-cost">费用: ${accommodationCost}元</span>
+                </div>
+            `;
+        }
+        
+        // 显示交通信息
+        if (day.transportation) {
+            planHTML += `
+                <div class="day-info">
+                    <div class="day-info-item">
+                        <strong>交通方式：</strong>${day.transportation}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 创建地点表格
+        planHTML += `
+            <table class="location-table">
+                <thead>
+                    <tr>
+                        <th>地点序列</th>
+                        <th>地点与活动</th>
+                        <th>时间</th>
+                        <th>活动详情</th>
+                        <th>交通方式</th>
+                        <th>费用(元)</th>
+                        <th>费用说明</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        let locationIndex = 1;
+        let locations = [];
+        
+        // 收集所有地点信息
         if (day.attractions && day.attractions.length > 0) {
-            planHTML += `<h4>景点</h4>`;
             day.attractions.forEach(attraction => {
-                planHTML += `
-                    <div class="location">
-                        <h5>${attraction.name}</h5>
-                        <p><strong>门票:</strong> ${attraction.ticket_price}</p>
-                        <p>${attraction.introduction}</p>
-                        <p><strong>地址:</strong> ${attraction.address}</p>
-                    </div>
-                `;
+                // 计算总费用（门票费用 + 交通费用）
+                let ticketPrice = parseFloat(attraction.ticket_price) || 0;
+                let transportationCost = parseFloat(attraction.transportation_cost) || 0;
+                let totalCost = ticketPrice + transportationCost;
+                
+                // 构建费用说明
+                let costDescription = '景点门票';
+                if (transportationCost > 0) {
+                    costDescription += ` + 交通费${transportationCost}元`;
+                }
+                
+                locations.push({
+                    type: '景点',
+                    name: attraction.name,
+                    time: attraction.time || '',
+                    description: attraction.introduction || '',
+                    transportation: attraction.transportation || '',
+                    cost: totalCost,
+                    costDescription: costDescription
+                });
             });
         }
         
+        // 添加餐饮信息到表格
         if (day.food && day.food.length > 0) {
-            planHTML += `<h4>餐饮</h4>`;
             day.food.forEach(food => {
-                planHTML += `
-                    <div class="location">
-                        <h5>${food.name}</h5>
-                        <p><strong>人均:</strong> ${food.price_per_person}</p>
-                        <p><strong>推荐理由:</strong> ${food.recommendation}</p>
-                    </div>
-                `;
+                // 计算总费用（餐饮费用 + 交通费用）
+                let foodPrice = parseFloat(food.price_per_person) || 0;
+                let transportationCost = parseFloat(food.transportation_cost) || 0;
+                let totalCost = foodPrice + transportationCost;
+                
+                // 构建费用说明
+                let costDescription = '餐饮费用';
+                if (transportationCost > 0) {
+                    costDescription += ` + 交通费${transportationCost}元`;
+                }
+                
+                locations.push({
+                    type: '餐饮',
+                    name: food.name,
+                    time: food.time || '',
+                    description: food.recommendation || '',
+                    transportation: food.transportation || '',
+                    cost: totalCost,
+                    costDescription: costDescription
+                });
             });
         }
         
+        // 添加活动信息到表格
         if (day.activities && day.activities.length > 0) {
-            planHTML += `<h4>活动</h4>`;
             day.activities.forEach(activity => {
-                planHTML += `
-                    <div class="location">
-                        <h5>${activity.name}</h5>
-                        <p><strong>费用:</strong> ${activity.cost}</p>
-                        <p>${activity.description}</p>
-                    </div>
-                `;
+                // 计算总费用（活动费用 + 交通费用）
+                let activityCost = parseFloat(activity.cost) || 0;
+                let transportationCost = parseFloat(activity.transportation_cost) || 0;
+                let totalCost = activityCost + transportationCost;
+                
+                // 构建费用说明
+                let costDescription = '活动费用';
+                if (transportationCost > 0) {
+                    costDescription += ` + 交通费${transportationCost}元`;
+                }
+                
+                locations.push({
+                    type: '活动',
+                    name: activity.name,
+                    time: activity.time || '',
+                    description: activity.description || '',
+                    transportation: activity.transportation || '',
+                    cost: totalCost,
+                    costDescription: costDescription
+                });
             });
         }
         
-        planHTML += `</div>`;
+        // 按时间排序地点
+        locations.sort((a, b) => {
+            if (a.time && b.time) {
+                return a.time.localeCompare(b.time);
+            }
+            return 0;
+        });
+        
+        // 添加地点到表格
+        locations.forEach((location, idx) => {
+            planHTML += `
+                <tr>
+                    <td>地点${idx + 1}</td>
+                    <td class="location-name">${location.name}</td>
+                    <td>${location.time || ''}</td>
+                    <td class="location-description">${location.description || ''}</td>
+                    <td>${location.transportation || ''}</td>
+                    <td class="location-cost">${location.cost || '0'}</td>
+                    <td>${location.costDescription || ''}</td>
+                </tr>
+            `;
+        });
+        
+        planHTML += `
+                </tbody>
+            </table>
+        </div>
+    </div>
+        `;
     });
     
     travelPlanDiv.innerHTML = planHTML;
@@ -695,8 +820,10 @@ function initSpeechRecognition() {
     
     recognition.onstart = () => {
         isRecognizing = true;
-        startVoiceBtn.disabled = true;
-        stopVoiceBtn.disabled = false;
+        const startVoiceBtn = document.getElementById('start-voice-btn');
+        const stopVoiceBtn = document.getElementById('stop-voice-btn');
+        if (startVoiceBtn) startVoiceBtn.disabled = true;
+        if (stopVoiceBtn) stopVoiceBtn.disabled = false;
         console.log('Speech recognition started');
     };
     
@@ -726,8 +853,10 @@ function initSpeechRecognition() {
     
     recognition.onend = () => {
         isRecognizing = false;
-        startVoiceBtn.disabled = false;
-        stopVoiceBtn.disabled = true;
+        const startVoiceBtn = document.getElementById('start-voice-btn');
+        const stopVoiceBtn = document.getElementById('stop-voice-btn');
+        if (startVoiceBtn) startVoiceBtn.disabled = false;
+        if (stopVoiceBtn) stopVoiceBtn.disabled = true;
         console.log('Speech recognition ended');
     };
 }
