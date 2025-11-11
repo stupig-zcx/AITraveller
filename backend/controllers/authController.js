@@ -2,7 +2,15 @@
 const fetch = require('node-fetch');
 global.fetch = fetch;
 
-const supabase = require('../supabaseClient');
+// 从环境变量获取Supabase配置
+require('dotenv').config({ path: __dirname + '/../.env' });
+const supabaseUrl = process.env.SUPABASE_URL || 'https://olsezvgkkwwpvbdkdusq.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s';
+
+console.log('Supabase Configuration:');
+console.log('- URL:', supabaseUrl);
+console.log('- Key exists:', !!supabaseKey);
+console.log('- Key length:', supabaseKey ? supabaseKey.length : 0);
 
 // 用户类定义
 class User {
@@ -24,51 +32,111 @@ class User {
   }
 }
 
+// 直接使用fetch API与Supabase交互
+async function supabaseFetch(endpoint, options = {}) {
+  const url = `${supabaseUrl}/rest/v1/${endpoint}`;
+  const defaultHeaders = {
+    'apikey': supabaseKey,
+    'Authorization': `Bearer ${supabaseKey}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  };
+
+  const config = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers
+    }
+  };
+
+  console.log(`Supabase Request to ${url}:`, {
+    method: config.method || 'GET',
+    headers: config.headers
+  });
+
+  const response = await fetch(url, config);
+  
+  console.log(`Supabase Response from ${url}:`, {
+    status: response.status,
+    statusText: response.statusText
+  });
+
+  return response;
+}
+
 // 用户注册
 async function register(req, res) {
   try {
     const { username, password } = req.body;
+    console.log('Register attempt:', { username });
     
     // 检查用户名是否已存在
-    const { data: existingUsers, error: checkError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('username', username)
-      .limit(1);
-    
-    if (checkError) {
-      return res.status(400).json({ error: checkError.message });
+    const checkResponse = await supabaseFetch(`users?username=eq.${username}`);
+    if (!checkResponse.ok) {
+      const errorText = await checkResponse.text();
+      console.log('Check user error response:', errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText || 'Unknown error' };
+      }
+      return res.status(400).json({ error: errorData.message });
     }
     
+    const existingUsers = await checkResponse.json();
+    console.log('Existing users check result:', existingUsers);
     if (existingUsers && existingUsers.length > 0) {
       return res.status(400).json({ error: '用户名已存在' });
     }
     
     // 创建新用户（在实际应用中，你应该对密码进行哈希处理）
-    const { data, error } = await supabase
-      .from('users')
-      .insert([
-        {
-          username: username,
-          password: password, // 注意：在实际应用中应该使用密码哈希
-          created_at: new Date()
-        }
-      ])
-      .select()
-      .single();
+    const insertResponse = await supabaseFetch('users', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: username,
+        password: password, // 注意：在实际应用中应该使用密码哈希
+        created_at: new Date().toISOString()
+      })
+    });
     
-    if (error) {
-      return res.status(400).json({ error: error.message });
+    console.log('Insert user response status:', insertResponse.status);
+    if (!insertResponse.ok) {
+      const errorText = await insertResponse.text();
+      console.log('Insert user error response:', errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText || 'Unknown error' };
+      }
+      return res.status(400).json({ error: errorData.message });
     }
+    
+    // 尝试解析响应体
+    const responseText = await insertResponse.text();
+    console.log('Insert user response text:', responseText);
+    
+    let userData;
+    try {
+      userData = JSON.parse(responseText);
+    } catch (e) {
+      console.log('Failed to parse JSON, using empty array');
+      userData = [{}]; // 默认值
+    }
+    
+    console.log('Insert user success:', userData);
     
     return res.status(200).json({ 
       message: '用户注册成功', 
       user: {
-        id: data.id,
-        username: data.username
+        id: userData[0]?.id || 'unknown',
+        username: userData[0]?.username || username
       }
     });
   } catch (error) {
+    console.error('Registration error:', error);
     return res.status(500).json({ error: '服务器内部错误' });
   }
 }
@@ -77,27 +145,38 @@ async function register(req, res) {
 async function login(req, res) {
   try {
     const { username, password } = req.body;
+    console.log('Login attempt:', { username });
     
     // 验证用户名和密码
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, username')
-      .eq('username', username)
-      .eq('password', password) // 注意：在实际应用中应该使用密码哈希验证
-      .single();
+    const response = await supabaseFetch(`users?username=eq.${username}&password=eq.${password}`);
+    console.log('Login response status:', response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('Login error response:', errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText || 'Unknown error' };
+      }
+      return res.status(400).json({ error: errorData.message });
+    }
     
-    if (error || !data) {
+    const userData = await response.json();
+    console.log('Login user data:', userData);
+    if (!userData || userData.length === 0) {
       return res.status(400).json({ error: '用户名或密码错误' });
     }
     
     return res.status(200).json({ 
       message: '登录成功', 
       user: {
-        id: data.id,
-        username: data.username
+        id: userData[0].id,
+        username: userData[0].username
       }
     });
   } catch (error) {
+    console.error('Login error:', error);
     return res.status(500).json({ error: '服务器内部错误' });
   }
 }
@@ -116,42 +195,61 @@ async function logout(req, res) {
 async function getUserProfile(req, res) {
   try {
     const { userId } = req.params;
+    console.log('Get user profile attempt:', { userId });
     
     // 获取用户基本信息
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('id, username, created_at')
-      .eq('id', userId)
-      .single();
+    const userResponse = await supabaseFetch(`users?id=eq.${userId}`);
+    console.log('Get user response status:', userResponse.status);
+    if (!userResponse.ok) {
+      const errorText = await userResponse.text();
+      console.log('Get user error response:', errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText || 'Unknown error' };
+      }
+      return res.status(400).json({ error: errorData.message });
+    }
     
-    if (userError) {
-      return res.status(400).json({ error: userError.message });
+    const userData = await userResponse.json();
+    console.log('Get user data:', userData);
+    if (!userData || userData.length === 0) {
+      return res.status(400).json({ error: '用户不存在' });
     }
     
     // 获取用户的旅游计划
-    const { data: plansData, error: plansError } = await supabase
-      .from('travel_plans')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    
-    if (plansError) {
-      return res.status(400).json({ error: plansError.message });
+    const plansResponse = await supabaseFetch(`travel_plans?user_id=eq.${userId}&order=created_at.desc`);
+    console.log('Get plans response status:', plansResponse.status);
+    if (!plansResponse.ok) {
+      const errorText = await plansResponse.text();
+      console.log('Get plans error response:', errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { message: errorText || 'Unknown error' };
+      }
+      return res.status(400).json({ error: errorData.message });
     }
     
+    const plansData = await plansResponse.json();
+    console.log('Get plans data:', plansData);
+    
     // 构建用户对象
-    const user = new User(userData.id, userData.username, null);
+    const user = new User(userData[0].id, userData[0].username, null);
     user.travelPlans = plansData;
     
     return res.status(200).json({ 
       user: {
-        id: userData.id,
-        username: userData.username,
-        created_at: userData.created_at,
+        id: userData[0].id,
+        username: userData[0].username,
+        created_at: userData[0].created_at,
         travelPlans: plansData
       }
     });
   } catch (error) {
+    console.error('Get user profile error:', error);
     return res.status(500).json({ error: '服务器内部错误' });
   }
 }

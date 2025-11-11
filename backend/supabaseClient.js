@@ -1,54 +1,56 @@
-// 添加全局Headers对象以解决Node.js版本兼容性问题
-if (typeof Headers === 'undefined') {
-  global.Headers = class Headers {
-    constructor(init) {
-      this._headers = {};
-      if (init) {
-        if (init instanceof Headers) {
-          init.forEach((value, name) => this.append(name, value));
-        } else if (Array.isArray(init)) {
-          init.forEach(([name, value]) => this.append(name, value));
-        } else {
-          Object.keys(init).forEach(name => this.append(name, init[name]));
-        }
-      }
-    }
-    
-    append(name, value) {
-      const key = name.toLowerCase();
-      if (this._headers[key]) {
-        this._headers[key] += ', ' + value;
-      } else {
-        this._headers[key] = value;
-      }
-    }
-    
-    set(name, value) {
-      this._headers[name.toLowerCase()] = value;
-    }
-    
-    get(name) {
-      return this._headers[name.toLowerCase()] || null;
-    }
-    
-    has(name) {
-      return this._headers.hasOwnProperty(name.toLowerCase());
-    }
-    
-    delete(name) {
-      delete this._headers[name.toLowerCase()];
-    }
-    
-    forEach(callback) {
-      Object.keys(this._headers).forEach(key => {
-        callback(this._headers[key], key);
-      });
-    }
-  };
-}
-
 // 加载环境变量
 require('dotenv').config({ path: __dirname + '/.env' });
+
+// 添加全局Headers对象以解决Node.js版本兼容性问题
+global.Headers = global.Headers || class Headers {
+  constructor(init) {
+    this._headers = new Map();
+    if (init) {
+      if (init instanceof Headers) {
+        init.forEach((value, name) => this.append(name, value));
+      } else if (Array.isArray(init)) {
+        init.forEach(([name, value]) => this.append(name, value));
+      } else {
+        Object.keys(init).forEach(name => this.append(name, init[name]));
+      }
+    }
+  }
+  
+  append(name, value) {
+    const key = name.toLowerCase();
+    if (this._headers.has(key)) {
+      this._headers.set(key, this._headers.get(key) + ', ' + value);
+    } else {
+      this._headers.set(key, value);
+    }
+  }
+  
+  set(name, value) {
+    this._headers.set(name.toLowerCase(), value);
+  }
+  
+  get(name) {
+    return this._headers.get(name.toLowerCase()) || null;
+  }
+  
+  has(name) {
+    return this._headers.has(name.toLowerCase());
+  }
+  
+  delete(name) {
+    this._headers.delete(name.toLowerCase());
+  }
+  
+  forEach(callback) {
+    this._headers.forEach((value, key) => {
+      callback(value, key);
+    });
+  }
+  
+  keys() {
+    return this._headers.keys();
+  }
+};
 
 const { createClient } = require('@supabase/supabase-js');
 
