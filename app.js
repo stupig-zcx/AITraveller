@@ -38,6 +38,7 @@ let isRecognizing = false;
 
 // User state
 let currentUser = null;
+let userTravelPlans = [];
 
 // Backend API base URL
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -233,13 +234,18 @@ function checkUserStatus() {
     // In a real app, you would check for a valid session token
     // For now, we'll just update the UI based on currentUser state
     updateAuthUI();
+    
+    // If user is logged in, fetch their travel plans
+    if (currentUser) {
+        fetchUserTravelPlans();
+    }
 }
 
 // Update authentication UI
 function updateAuthUI() {
     if (currentUser) {
         // User is logged in
-        loginBtn.textContent = `欢迎, ${currentUser.email}`;
+        loginBtn.textContent = `欢迎, ${currentUser.username}`;  // 使用用户名而不是邮箱
         registerBtn.style.display = 'none';
     } else {
         // User is not logged in
@@ -252,16 +258,17 @@ function updateAuthUI() {
 async function handleLogin(e) {
     e.preventDefault();
     
-    const email = document.getElementById('login-email').value;
+    const username = document.getElementById('login-email').value;  // 改为用户名
     const password = document.getElementById('login-password').value;
     
     try {
+        // 修改为使用用户名和密码登录
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ username, password })  // 使用username而不是email
         });
         
         const data = await response.json();
@@ -272,8 +279,11 @@ async function handleLogin(e) {
         
         currentUser = {
             id: data.user.id,
-            email: data.user.email
+            username: data.user.username  // 使用username而不是email
         };
+        
+        // 获取用户的旅游计划
+        await fetchUserTravelPlans();
         
         // Close modal
         authModal.classList.add('hidden');
@@ -292,16 +302,17 @@ async function handleLogin(e) {
 async function handleRegister(e) {
     e.preventDefault();
     
-    const email = document.getElementById('register-email').value;
+    const username = document.getElementById('register-email').value;  // 改为用户名
     const password = document.getElementById('register-password').value;
     
     try {
+        // 修改为使用用户名和密码注册
         const response = await fetch(`${API_BASE_URL}/auth/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ username, password })  // 使用username而不是email
         });
         
         const data = await response.json();
@@ -351,6 +362,8 @@ async function handleTravelFormSubmit(e) {
         // Save travel plan to backend if user is logged in
         if (currentUser) {
             await saveTravelPlanToBackend(travelPlan);
+            // Refresh user's travel plans
+            await fetchUserTravelPlans();
         }
         
         // Switch to plan section
@@ -447,15 +460,15 @@ async function generateTravelPlan(destination, days, budget, preferences) {
       "attractions": [
         {
           "name": "景点名称",
-          "ticket_price": "门票价格（人民币）",
-          "introduction": "景点介绍",
-          "address": "景点地址"
+          "ticket_price": "景点门票价格",
+          "introduction": "景点简要介绍",
+          "address": "景点的具体地址"
         }
       ],
       "food": [
         {
           "name": "餐厅或食物名称",
-          "price_per_person": "人均消费（人民币）",
+          "price_per_person": "人均消费",
           "recommendation": "推荐理由"
         }
       ],
@@ -729,5 +742,24 @@ function updateFormWithSpeech(text) {
         } else {
             preferencesField.value = text;
         }
+    }
+}
+
+// Fetch user's travel plans
+async function fetchUserTravelPlans() {
+    if (!currentUser) return;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/profile/${currentUser.id}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || '获取用户信息失败');
+        }
+        
+        userTravelPlans = data.user.travelPlans || [];
+        console.log('User travel plans:', userTravelPlans);
+    } catch (error) {
+        console.error('Error fetching user travel plans:', error);
     }
 }

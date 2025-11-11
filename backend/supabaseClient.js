@@ -47,26 +47,19 @@ if (typeof Headers === 'undefined') {
   };
 }
 
+// 加载环境变量
+require('dotenv').config({ path: __dirname + '/.env' });
+
 const { createClient } = require('@supabase/supabase-js');
 
 // Supabase配置 - 从环境变量获取
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || 'https://olsezvgkkwwpvbdkdusq.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s';
 
 console.log('Supabase URL:', supabaseUrl);
 console.log('Supabase Key exists:', !!supabaseKey);
 
 // 创建Supabase客户端实例
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: false
-  },
-  global: {
-    headers: {
-      'apikey': supabaseKey
-    }
-  }
-});
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 module.exports = supabase;
