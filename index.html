@@ -76,9 +76,15 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="voice-input">语音输入:</label>
-                        <button type="button" id="start-voice-btn">开始语音识别</button>
-                        <button type="button" id="stop-voice-btn" disabled>停止语音识别</button>
+                        <button type="button" id="start-voice-btn" class="voice-button">语音输入</button>
+                        <button type="button" id="stop-voice-btn" class="voice-button" disabled>停止语音输入</button>
+                    </div>
+                    
+                    <!-- 语音识别处理中的提示模态框 -->
+                    <div id="processing-modal" class="modal hidden">
+                        <div class="modal-content">
+                            <p>正在进行语音转文字，请稍候...</p>
+                        </div>
                     </div>
                     
                     <button type="submit">生成旅行计划</button>

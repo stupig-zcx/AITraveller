@@ -27,6 +27,9 @@ const closeButtons = document.querySelectorAll('.close');
 const settingsForm = document.getElementById('settings-form');
 const deepseekApiKeyInput = document.getElementById('deepseek-api-key');
 
+// Speech recognition processing modal
+const processingModal = document.getElementById('processing-modal');
+
 // Speech recognition variables
 let recognition;
 let isRecognizing = false;
@@ -331,7 +334,7 @@ async function handleDirectLogin(e) {
         // Update UI
         updateAuthUI();
         
-        alert('登录成功!');
+        // 移除了登录成功的弹窗提示，直接跳转
     } catch (error) {
         console.error('Login error:', error);
         alert('登录失败: ' + error.message);
@@ -506,8 +509,8 @@ async function generateTravelPlan(destination, days, budget, preferences) {
 输出格式要求：
 你需要以严格的JSON格式输出，具体结构如下：
 {
-  "title": "旅行标题",
-  "total_consumption": "总消费金额（人民币）",
+  "title": "旅行的整体标题",
+  "total_consumption": "整个旅行的预估总消费，以人民币为单位",
   "days_detail": [
     {
       "date": "日期（YYYY-MM-DD）",
@@ -850,110 +853,152 @@ function handleSettingsFormSubmit(e) {
 
 // Initialize speech recognition
 function initSpeechRecognition() {
-    if ('webkitSpeechRecognition' in window) {
-        recognition = new webkitSpeechRecognition();
-    } else if ('SpeechRecognition' in window) {
-        recognition = new SpeechRecognition();
-    } else {
-        console.warn('Speech recognition not supported');
-        return;
-    }
-    
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'zh-CN';
-    
-    recognition.onstart = () => {
-        isRecognizing = true;
-        const startVoiceBtn = document.getElementById('start-voice-btn');
-        const stopVoiceBtn = document.getElementById('stop-voice-btn');
-        if (startVoiceBtn) startVoiceBtn.disabled = true;
-        if (stopVoiceBtn) stopVoiceBtn.disabled = false;
-        console.log('Speech recognition started');
-    };
-    
-    recognition.onresult = (event) => {
-        let finalTranscript = '';
-        let interimTranscript = '';
+    try {
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+        } else if ('SpeechRecognition' in window) {
+            recognition = new SpeechRecognition();
+        } else {
+            console.warn('Speech recognition not supported');
+            hideVoiceButtons();
+            return;
+        }
         
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-                finalTranscript += transcript;
-            } else {
-                interimTranscript += transcript;
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'zh-CN';
+        
+        recognition.onstart = () => {
+            isRecognizing = true;
+            const startVoiceBtn = document.getElementById('start-voice-btn');
+            const stopVoiceBtn = document.getElementById('stop-voice-btn');
+            if (startVoiceBtn) startVoiceBtn.disabled = true;
+            if (stopVoiceBtn) stopVoiceBtn.disabled = false;
+            console.log('Speech recognition started');
+            // 不再显示"正在语音转文字"的弹窗
+        };
+        
+        recognition.onresult = (event) => {
+            let finalTranscript = '';
+            
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript;
+                }
             }
-        }
+            
+            // Update form fields with recognized text
+            if (finalTranscript) {
+                updateFormWithSpeech(finalTranscript);
+            }
+        };
         
-        // Update form fields with recognized text
-        if (finalTranscript) {
-            updateFormWithSpeech(finalTranscript);
-        }
-    };
-    
-    recognition.onerror = (event) => {
-        console.error('Speech recognition error', event.error);
-        stopVoiceRecognition();
-    };
-    
-    recognition.onend = () => {
-        isRecognizing = false;
-        const startVoiceBtn = document.getElementById('start-voice-btn');
-        const stopVoiceBtn = document.getElementById('stop-voice-btn');
-        if (startVoiceBtn) startVoiceBtn.disabled = false;
-        if (stopVoiceBtn) stopVoiceBtn.disabled = true;
-        console.log('Speech recognition ended');
-    };
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error', event.error, event.message);
+            stopVoiceRecognition();
+            alert('语音识别出错: ' + event.error + (event.message ? ' - ' + event.message : ''));
+        };
+        
+        recognition.onend = () => {
+            isRecognizing = false;
+            const startVoiceBtn = document.getElementById('start-voice-btn');
+            const stopVoiceBtn = document.getElementById('stop-voice-btn');
+            if (startVoiceBtn) startVoiceBtn.disabled = false;
+            if (stopVoiceBtn) stopVoiceBtn.disabled = true;
+            console.log('Speech recognition ended');
+        };
+    } catch (error) {
+        console.error('Error initializing speech recognition:', error);
+        hideVoiceButtons();
+    }
+}
+
+// Hide voice buttons if speech recognition is not supported
+function hideVoiceButtons() {
+    const voiceInputGroup = document.querySelector('#voice-input').closest('.form-group');
+    if (voiceInputGroup) {
+        voiceInputGroup.style.display = 'none';
+    }
 }
 
 // Start voice recognition
 function startVoiceRecognition() {
-    if (isRecognizing) return;
+    if (isRecognizing) {
+        alert('正在语音转文字，请先停止当前识别');
+        return;
+    }
+    
+    const preferencesField = document.getElementById('preferences');
+    if (!preferencesField) {
+        console.error('Preferences field not found');
+        return;
+    }
     
     try {
+        // Check if we're on a secure context or localhost
+        if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            alert('语音识别需要在安全环境(HTTPS)或本地环境运行');
+            return;
+        }
+        
         recognition.start();
     } catch (error) {
         console.error('Error starting speech recognition:', error);
+        alert('启动语音识别失败: ' + error.message);
     }
 }
 
 // Stop voice recognition
 function stopVoiceRecognition() {
-    if (!isRecognizing) return;
+    if (!isRecognizing) {
+        return;
+    }
     
-    recognition.stop();
+    try {
+        // 显示处理中模态框
+        if (processingModal) {
+            processingModal.classList.remove('hidden');
+        }
+        
+        recognition.stop();
+        
+        // 在识别结束时隐藏处理中模态框
+        recognition.onend = () => {
+            isRecognizing = false;
+            const startVoiceBtn = document.getElementById('start-voice-btn');
+            const stopVoiceBtn = document.getElementById('stop-voice-btn');
+            if (startVoiceBtn) startVoiceBtn.disabled = false;
+            if (stopVoiceBtn) stopVoiceBtn.disabled = true;
+            console.log('Speech recognition ended');
+            
+            // 隐藏处理中模态框
+            if (processingModal) {
+                processingModal.classList.add('hidden');
+            }
+        };
+    } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+        // 隐藏处理中模态框
+        if (processingModal) {
+            processingModal.classList.add('hidden');
+        }
+    }
 }
 
 // Update form with speech recognition results
 function updateFormWithSpeech(text) {
-    // Simple heuristic to determine which field to populate
-    const destinationField = document.getElementById('destination');
-    const daysField = document.getElementById('days');
-    const budgetField = document.getElementById('budget');
     const preferencesField = document.getElementById('preferences');
     
-    // If fields are empty, populate them in order
-    if (!destinationField.value) {
-        destinationField.value = text;
-    } else if (!daysField.value) {
-        // Try to extract a number for days
-        const daysMatch = text.match(/\d+/);
-        if (daysMatch) {
-            daysField.value = daysMatch[0];
-        }
-    } else if (!budgetField.value) {
-        // Try to extract a number for budget
-        const budgetMatch = text.match(/\d+/);
-        if (budgetMatch) {
-            budgetField.value = budgetMatch[0];
-        }
-    } else {
-        // Append to preferences
+    if (preferencesField) {
         if (preferencesField.value) {
-            preferencesField.value += '; ' + text;
+            preferencesField.value += ' ' + text;
         } else {
             preferencesField.value = text;
         }
+        
+        // 触发input事件以便更新任何监听器
+        preferencesField.dispatchEvent(new Event('input', { bubbles: true }));
     }
 }
 
