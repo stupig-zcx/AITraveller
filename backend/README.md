@@ -2,7 +2,7 @@
 
 这是一个为旅游规划助手前端应用提供API服务的Node.js后端。
 
-## 功能特性
+## 功能特点
 
 1. 用户认证（注册、登录、登出）
 2. 旅行计划管理（创建、读取、更新、删除）
@@ -27,7 +27,7 @@
    ```bash
    cp .env.example .env
    ```
-   
+
 4. 在 `.env` 文件中配置以下变量：
    ```
    SUPABASE_URL=your_supabase_project_url
@@ -64,13 +64,13 @@ END;
 $$ language 'plpgsql';
 
 -- 创建触发器以自动更新updated_at字段
-CREATE TRIGGER update_travel_plans_updated_at 
-  BEFORE UPDATE ON travel_plans 
-  FOR EACH ROW 
+CREATE TRIGGER update_travel_plans_updated_at
+  BEFORE UPDATE ON travel_plans
+  FOR EACH ROW
   EXECUTE PROCEDURE update_updated_at_column();
 ```
 
-或者，您可以直接运行我们提供的SQL文件：
+或者，你可以直接运行我们提供的SQL文件：
 ```sql
 \i database/schema.sql
 ```
@@ -111,6 +111,5 @@ npm start
 
 ## 注意事项
 
-1. 在生产环境中，请确保环境变量配置正确，特别是Supabase的凭证信息
-2. 服务角色密钥具有数据库的完全访问权限，请妥善保管
-3. 前端应用应通过此后端API与Supabase交互，而不是直接连接
+1. 在生产环境中，请确保环境变量配置正确，特别是Supabase的凭证信息。
+2. 服务角色密钥具有数据库的完全访问权限，请妥善保管。

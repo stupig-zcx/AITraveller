@@ -57,6 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize iFlytek speech recognition
     initIFlytekSpeechRecognition();
     
+    // Pre-initialize media devices to reduce recording latency
+    initializeMediaDevices();
+    
     // Check if user is already logged in
     checkUserStatus();
 });
@@ -101,6 +104,17 @@ function setupEventListeners() {
         });
     } else {
         console.error('historyBtn not found');
+    }
+    
+    // Logout button
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            console.log('Logout button clicked');
+            logout();
+        });
+    } else {
+        console.error('logoutBtn not found');
     }
     
     // Back to form button
@@ -238,6 +252,18 @@ function setupEventListeners() {
 
 // Check user status
 function checkUserStatus() {
+    // Check if user data is stored in localStorage
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+        try {
+            currentUser = JSON.parse(storedUser);
+            console.log('Restored user from localStorage:', currentUser);
+        } catch (e) {
+            console.error('Error parsing stored user data:', e);
+            localStorage.removeItem('currentUser');
+        }
+    }
+    
     // In a real app, you would check for a valid session token
     // For now, we'll just update the UI based on currentUser state
     updateAuthUI();
@@ -250,9 +276,15 @@ function checkUserStatus() {
 
 // Update authentication UI
 function updateAuthUI() {
+    // Get logout button
+    const logoutBtn = document.getElementById('logout-btn');
+    
     if (currentUser) {
         // User is logged in
         historyBtn.style.display = 'inline-block'; // 显示历史记录按钮
+        if (logoutBtn) {
+            logoutBtn.style.display = 'inline-block'; // 显示退出登录按钮
+        }
         
         // Hide auth section and show welcome section
         if (authSection) {
@@ -272,6 +304,9 @@ function updateAuthUI() {
     } else {
         // User is not logged in
         historyBtn.style.display = 'none'; // 隐藏历史记录按钮
+        if (logoutBtn) {
+            logoutBtn.style.display = 'none'; // 隐藏退出登录按钮
+        }
         
         // Show auth section and hide other sections
         if (authSection) {
@@ -287,6 +322,20 @@ function updateAuthUI() {
             planSection.classList.add('hidden');
         }
     }
+}
+
+// Add logout function
+function logout() {
+    // Clear user data
+    currentUser = null;
+    
+    // Remove user data from localStorage
+    localStorage.removeItem('currentUser');
+    
+    // Update UI
+    updateAuthUI();
+    
+    console.log('User logged out');
 }
 
 // Handle direct login
@@ -318,6 +367,9 @@ async function handleDirectLogin(e) {
             id: data.user.id,
             username: data.user.username
         };
+        
+        // Store user data in localStorage for persistence
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
         
         // 获取用户的旅游计划
         await fetchUserTravelPlans();
@@ -411,7 +463,7 @@ async function handleTravelFormSubmit(e) {
         planSection.classList.remove('hidden');
     } catch (error) {
         console.error('Error generating travel plan:', error);
-        alert('生成旅行计划时出错，请稍后重试');
+        alert(`生成旅行计划时出错: ${error.message}`);
     } finally {
         // Restore button state
         submitButton.textContent = originalText;
@@ -536,7 +588,7 @@ async function generateTravelPlan(destination, days, budget, preferences) {
           "transportation": "前往活动地点的交通方式",
           "transportation_cost": "前往活动地点的交通费用（人民币）",
           "cost": "活动费用",
-          "description": "活动描述"
+          "description": "活动简要描述"
         }
       ]
     }
@@ -557,7 +609,7 @@ async function generateTravelPlan(destination, days, budget, preferences) {
      - transportation: 前往该景点的交通方式
      - transportation_cost: 前往该景点的交通费用（人民币）
      - ticket_price: 景点门票价格
-     - introduction: 景点简要介绍（不超过100字）
+     - introduction: 景点简要介绍
      - address: 景点的具体地址
    - food: 餐饮安排列表
      - name: 餐厅或特色食品名称
@@ -565,7 +617,7 @@ async function generateTravelPlan(destination, days, budget, preferences) {
      - transportation: 前往餐厅的交通方式
      - transportation_cost: 前往餐厅的交通费用（人民币）
      - price_per_person: 人均消费
-     - recommendation: 推荐原因（不超过50字）
+     - recommendation: 推荐原因
    - activities: 其他活动安排
      - name: 活动名称
      - time: 活动时间（如15:00）
@@ -597,6 +649,9 @@ async function generateTravelPlan(destination, days, budget, preferences) {
     const data = await response.json();
     const content = data.choices[0].message.content;
     
+    // Log the raw response for debugging
+    console.log('Raw AI response:', content);
+    
     // Extract JSON from the response
     try {
         // Try to parse directly
@@ -605,9 +660,18 @@ async function generateTravelPlan(destination, days, budget, preferences) {
         // If direct parsing fails, try to extract JSON from code blocks
         const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
         if (jsonMatch && jsonMatch[1]) {
-            return JSON.parse(jsonMatch[1]);
+            try {
+                return JSON.parse(jsonMatch[1]);
+            } catch (innerError) {
+                console.error('Failed to parse extracted JSON:', innerError);
+                console.error('Extracted content:', jsonMatch[1]);
+                throw new Error(`Failed to parse travel plan JSON: ${innerError.message}\nResponse content: ${content.substring(0, 500)}...`);
+            }
         }
-        throw new Error('Failed to parse travel plan JSON');
+        
+        // If all parsing attempts fail, throw a detailed error
+        console.error('Complete AI response that failed to parse:', content);
+        throw new Error(`Failed to parse travel plan JSON. The AI response was not in valid JSON format.\nResponse content: ${content.substring(0, 500)}...`);
     }
 }
 
@@ -878,6 +942,30 @@ let mediaRecorder;
 let audioChunks = [];
 let debugAudioBlob = null; // 用于存储录制的音频blob用于调试
 let audioStream;
+let audioConstraints = {
+    audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+    }
+};
+
+// Pre-initialize media devices to reduce latency
+let mediaDevicesInitialized = false;
+async function initializeMediaDevices() {
+    if (mediaDevicesInitialized) return;
+    
+    try {
+        // Just test if we can get user media - this will prompt permissions early
+        const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+        // Stop all tracks immediately
+        stream.getTracks().forEach(track => track.stop());
+        mediaDevicesInitialized = true;
+        console.log('Media devices initialized');
+    } catch (error) {
+        console.warn('Could not pre-initialize media devices:', error);
+    }
+}
 
 // Start custom voice recognition
 async function startCustomVoiceRecognition() {
@@ -906,16 +994,7 @@ async function startCustomVoiceRecognition() {
         debugAudioBlob = null;
         
         // Get microphone access with more compatible constraints
-        const constraints = {
-            audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true
-            }
-        };
-        
-        // Try to get stream with constraints
-        audioStream = await navigator.mediaDevices.getUserMedia(constraints);
+        audioStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
         console.log('Microphone access granted');
         
         // Create media recorder with better browser compatibility
@@ -1102,6 +1181,7 @@ function showDebugAudioPlayer(blob) {
             downloadButton = document.createElement('button');
             downloadButton.id = 'download-debug-audio';
             downloadButton.textContent = '下载音频文件';
+            downloadButton.className = 'voice-button'; // 使用统一的按钮样式
             downloadButton.style.marginLeft = '10px';
             downloadButton.onclick = () => {
                 const a = document.createElement('a');
@@ -1112,17 +1192,6 @@ function showDebugAudioPlayer(blob) {
                 document.body.removeChild(a);
             };
             debugElement.appendChild(downloadButton);
-        }
-        
-        // Add save base64 button for backend testing
-        let saveBase64Button = document.getElementById('save-base64-audio');
-        if (!saveBase64Button) {
-            saveBase64Button = document.createElement('button');
-            saveBase64Button.id = 'save-base64-audio';
-            saveBase64Button.textContent = '保存Base64数据';
-            saveBase64Button.style.marginLeft = '10px';
-            saveBase64Button.onclick = saveAudioDataBase64;
-            debugElement.appendChild(saveBase64Button);
         }
     }
 }

@@ -434,3 +434,95 @@ nav button:hover {
     color: #0c5460;
     border: 1px solid #bee5eb;
 }
+
+/* Voice input button styles */
+.voice-input-controls {
+    margin-top: 10px;
+}
+
+.voice-input-controls button {
+    padding: 8px 16px;
+    background-color: #690e99;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-right: 10px;
+    box-shadow: 0 2px 4px rgba(105, 14, 153, 0.3);
+}
+
+.voice-input-controls button:hover {
+    background-color: #7b1fa2;
+    box-shadow: 0 4px 8px rgba(105, 14, 153, 0.4);
+    transform: translateY(-2px);
+}
+
+.voice-input-controls button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+.voice-button {
+    padding: 8px 16px;
+    background-color: #690e99;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px rgba(105, 14, 153, 0.3);
+}
+
+.voice-button:hover {
+    background-color: #7b1fa2;
+    box-shadow: 0 4px 8px rgba(105, 14, 153, 0.4);
+    transform: translateY(-2px);
+}
+
+/* Update other buttons to use the new theme color */
+.auth-button {
+    background-color: #690e99;
+    box-shadow: 0 2px 4px rgba(105, 14, 153, 0.3);
+}
+
+.auth-button:hover {
+    background-color: #7b1fa2;
+    box-shadow: 0 4px 8px rgba(105, 14, 153, 0.4);
+    transform: translateY(-2px);
+}
+
+.secondary-button {
+    background-color: #690e99;
+    box-shadow: 0 2px 4px rgba(105, 14, 153, 0.3);
+}
+
+.secondary-button:hover {
+    background-color: #7b1fa2;
+    box-shadow: 0 4px 8px rgba(105, 14, 153, 0.4);
+    transform: translateY(-2px);
+}
+
+.back-button {
+    background-color: #690e99;
+    box-shadow: 0 2px 4px rgba(105, 14, 153, 0.3);
+}
+
+.back-button:hover {
+    background-color: #7b1fa2;
+    box-shadow: 0 4px 8px rgba(105, 14, 153, 0.4);
+    transform: translateY(-2px);
+}
+
+button[type="submit"] {
+    background-color: #690e99;
+    box-shadow: 0 2px 4px rgba(105, 14, 153, 0.3);
+}
+
+button[type="submit"]:hover {
+    background-color: #7b1fa2;
+    box-shadow: 0 4px 8px rgba(105, 14, 153, 0.4);
+    transform: translateY(-2px);
+}

@@ -13,6 +13,7 @@
             <nav>
                 <button id="history-btn" style="display: none;">历史记录</button>
                 <button id="settings-btn">设置</button>
+                <button id="logout-btn" style="display: none;">退出登录</button>
             </nav>
         </header>
 
@@ -80,7 +81,7 @@
                         <!-- 添加音频播放器用于调试 -->
                         <div id="audio-debug" style="margin-top: 10px; display: none;">
                             <audio id="debug-audio-player" controls></audio>
-                            <button type="button" id="play-debug-audio">播放录制音频</button>
+                            <button type="button" id="play-debug-audio" class="voice-button">播放录制音频</button>
                         </div>
                     </div>
                     
@@ -92,8 +93,8 @@
                 <div class="plan-header">
                     <h2>您的旅行计划</h2>
                     <div>
-                        <button id="back-to-history" class="back-button">← 返回历史记录</button>
                         <button id="back-to-form" class="back-button">← 返回查询页面</button>
+                        <button id="back-to-history" class="back-button">← 返回历史记录</button>
                     </div>
                 </div>
                 <div id="travel-plan"></div>
