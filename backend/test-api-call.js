@@ -1,45 +1,47 @@
-const fetch = require('node-fetch');
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
 
-async function testRegister() {
+// 测试新的API端点
+async function testAPICall() {
   try {
-    console.log('Testing registration...');
+    console.log('测试新的API端点...');
     
-    const response = await fetch('http://localhost:3000/api/auth/register', {
-      method: 'POST',
+    // 使用简短的测试数据
+    const testAudioData = 'dGVzdCBhdWRpbyBkYXRh'; // "test audio data"的base64编码
+    console.log('测试数据长度:', testAudioData.length);
+    
+    // 发送请求到新的API端点
+    const response = await axios.post('http://localhost:3000/api/new-speech/new-speech-to-text', {
+      audioData: testAudioData
+    }, {
       headers: {
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        username: 'testuser_' + Date.now(), // 使用唯一用户名
-        password: 'testpass'
-      })
+      }
     });
     
-    console.log('Response status:', response.status);
-    const data = await response.json();
-    console.log('Response data:', data);
+    console.log('响应状态:', response.status);
+    console.log('响应结果:', JSON.stringify(response.data, null, 2));
     
-    if (response.status === 200) {
-      // 测试登录
-      console.log('\nTesting login...');
-      const loginResponse = await fetch('http://localhost:3000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          username: data.user.username,
-          password: 'testpass'
-        })
-      });
-      
-      console.log('Login response status:', loginResponse.status);
-      const loginData = await loginResponse.json();
-      console.log('Login response data:', loginData);
-    }
+    return response.data;
   } catch (error) {
-    console.error('Error:', error);
+    console.error('API调用测试失败:', error.message);
+    if (error.response) {
+      console.error('错误响应:', error.response.status, JSON.stringify(error.response.data, null, 2));
+    }
+    throw error;
   }
 }
 
-testRegister();
+// 运行测试
+if (require.main === module) {
+  testAPICall()
+    .then(result => {
+      console.log('测试完成');
+      process.exit(0);
+    })
+    .catch(error => {
+      console.error('测试失败:', error);
+      process.exit(1);
+    });
+}

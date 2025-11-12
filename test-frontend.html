@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试语音识别</title>
+</head>
+<body>
+    <h1>测试语音识别功能</h1>
+    
+    <div>
+        <label for="preferences">旅游偏好:</label><br>
+        <textarea id="preferences" rows="4" cols="50"></textarea><br><br>
+        
+        <button id="start-voice-btn">开始录音</button>
+        <button id="stop-voice-btn" disabled>停止录音</button>
+    </div>
+
+    <div id="status"></div>
+    
+    <script>
+        // 全局变量
+        let mediaRecorder;
+        let audioStream;
+        let audioChunks = [];
+        let isRecognizing = false;
+        
+        // DOM元素
+        const startBtn = document.getElementById('start-voice-btn');
+        const stopBtn = document.getElementById('stop-voice-btn');
+        const preferencesInput = document.getElementById('preferences');
+        const statusDiv = document.getElementById('status');
+        
+        // API基础URL
+        const API_BASE_URL = 'http://localhost:3000/api';
+        
+        // 更新状态显示
+        function updateStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.style.color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'black';
+        }
+        
+        // 更新按钮状态
+        function updateButtonState(isRecording) {
+            startBtn.disabled = isRecording;
+            stopBtn.disabled = !isRecording;
+            startBtn.textContent = isRecording ? '录音中...' : '开始录音';
+        }
+        
+        // 开始录音
+        async function startRecording() {
+            try {
+                if (isRecognizing) return;
+                
+                // 重置状态
+                audioChunks = [];
+                isRecognizing = true;
+                updateButtonState(true);
+                updateStatus('正在录音，请说话...');
+                
+                // 获取媒体流
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(audioStream);
+                
+                // 设置事件处理
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = async () => {
+                    updateStatus('正在进行语音识别...');
+                    
+                    try {
+                        // 合并音频数据
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        
+                        // 转换为Base64
+                        const base64Data = await convertBlobToBase64(audioBlob);
+                        
+                        // 发送到后端进行语音识别
+                        const response = await fetch(`${API_BASE_URL}/new-speech/new-speech-to-text`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ audioData: base64Data })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok && result.success) {
+                            // 更新文本框内容
+                            preferencesInput.value = result.text;
+                            updateStatus('语音识别成功!', 'success');
+                        } else {
+                            updateStatus(`语音识别失败: ${result.message}`, 'error');
+                        }
+                    } catch (error) {
+                        updateStatus(`语音识别错误: ${error.message}`, 'error');
+                    }
+                    
+                    isRecognizing = false;
+                    updateButtonState(false);
+                };
+                
+                // 开始录音
+                mediaRecorder.start();
+            } catch (error) {
+                updateStatus(`录音错误: ${error.message}`, 'error');
+                isRecognizing = false;
+                updateButtonState(false);
+            }
+        }
+        
+        // 停止录音
+        function stopRecording() {
+            if (!isRecognizing) return;
+            
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+            }
+        }
+        
+        // 将Blob转换为Base64
+        function convertBlobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+        
+        // 绑定事件
+        startBtn.addEventListener('click', startRecording);
+        stopBtn.addEventListener('click', stopRecording);
+    </script>
+</body>
+</html>

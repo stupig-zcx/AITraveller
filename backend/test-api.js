@@ -79,3 +79,55 @@ if (require.main === module) {
 }
 
 module.exports = testSupabaseConnection;
+
+const http = require('http');
+
+// 测试请求
+const postData = JSON.stringify({
+  audioData: 'dGVzdA==' // "test"的base64编码
+});
+
+const options = {
+  hostname: 'localhost',
+  port: 3000,
+  path: '/api/speech/speech-to-text',
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(postData)
+  }
+};
+
+console.log('发送测试请求到:', options);
+
+const req = http.request(options, (res) => {
+  console.log('收到响应:');
+  console.log('  状态码:', res.statusCode);
+  console.log('  响应头:', res.headers);
+  
+  let data = '';
+  
+  res.on('data', (chunk) => {
+    data += chunk;
+  });
+  
+  res.on('end', () => {
+    console.log('响应体:');
+    console.log(data);
+    
+    // 尝试解析JSON
+    try {
+      const jsonData = JSON.parse(data);
+      console.log('JSON解析成功:', jsonData);
+    } catch (error) {
+      console.log('JSON解析失败:', error.message);
+    }
+  });
+});
+
+req.on('error', (error) => {
+  console.error('请求错误:', error);
+});
+
+req.write(postData);
+req.end();

@@ -72,18 +72,15 @@
                     
                     <div class="form-group">
                         <label for="preferences">旅行偏好:</label>
-                        <textarea id="preferences" placeholder="例如：我喜欢美食和动漫，带孩子出行"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <button type="button" id="start-voice-btn" class="voice-button">语音输入</button>
-                        <button type="button" id="stop-voice-btn" class="voice-button" disabled>停止语音输入</button>
-                    </div>
-                    
-                    <!-- 语音识别处理中的提示模态框 -->
-                    <div id="processing-modal" class="modal hidden">
-                        <div class="modal-content">
-                            <p>正在进行语音转文字，请稍候...</p>
+                        <textarea id="preferences" name="preferences" rows="4" placeholder="请输入您的旅行偏好，例如：喜欢自然风光、偏好历史文化、预算控制等"></textarea>
+                        <div class="voice-input-controls">
+                            <button type="button" id="start-voice-btn">开始语音输入</button>
+                            <button type="button" id="stop-voice-btn" disabled>停止语音输入</button>
+                        </div>
+                        <!-- 添加音频播放器用于调试 -->
+                        <div id="audio-debug" style="margin-top: 10px; display: none;">
+                            <audio id="debug-audio-player" controls></audio>
+                            <button type="button" id="play-debug-audio">播放录制音频</button>
                         </div>
                     </div>
                     
@@ -129,6 +126,12 @@
                 </form>
             </div>
         </div>
+
+    <!-- Processing Modal -->
+    <div id="processing-modal" class="modal hidden">
+        <div class="modal-content">
+            <p>正在进行语音识别，请稍候...</p>
+        </div>
     </div>
 
     <script>
@@ -136,6 +139,10 @@
         window.addEventListener('error', function(e) {
             console.error('JavaScript Error:', e.message);
         });
+
+        // 全局变量存储最新录制的音频blob
+        let latestAudioBlob = null;
+
     </script>
     <script src="app.js"></script>
 </body>

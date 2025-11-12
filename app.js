@@ -30,8 +30,8 @@ const deepseekApiKeyInput = document.getElementById('deepseek-api-key');
 // Speech recognition processing modal
 const processingModal = document.getElementById('processing-modal');
 
-// Speech recognition variables
-let recognition;
+// Speech recognition variables for iFlytek
+let iflytekRecognizer = null;
 let isRecognizing = false;
 
 // User state
@@ -42,7 +42,7 @@ let userTravelPlans = [];
 const API_BASE_URL = 'http://localhost:3000/api';
 
 // Check if browser supports speech recognition
-const supportsSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+const supportsSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window || (navigator.mediaDevices && window.MediaRecorder);
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
@@ -54,20 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set up event listeners
     setupEventListeners();
     
-    // Initialize speech recognition if supported
-    if (supportsSpeechRecognition) {
-        initSpeechRecognition();
-    } else {
-        console.warn('Browser does not support speech recognition');
-        // Hide voice input buttons if not supported
-        var voiceInput = document.querySelector('[for="voice-input"]');
-        if (voiceInput && voiceInput.closest) {
-            var formGroup = voiceInput.closest('.form-group');
-            if (formGroup) {
-                formGroup.style.display = 'none';
-            }
-        }
-    }
+    // Initialize iFlytek speech recognition
+    initIFlytekSpeechRecognition();
     
     // Check if user is already logged in
     checkUserStatus();
@@ -227,18 +215,21 @@ function setupEventListeners() {
     }
     
     // Voice recognition buttons
+    // Check if browser supports speech recognition
+    const supportsSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window || (navigator.mediaDevices && window.MediaRecorder);
+    
     if (supportsSpeechRecognition) {
         const startVoiceBtn = document.getElementById('start-voice-btn');
         const stopVoiceBtn = document.getElementById('stop-voice-btn');
         
         if (startVoiceBtn) {
-            startVoiceBtn.addEventListener('click', startVoiceRecognition);
+            startVoiceBtn.addEventListener('click', startCustomVoiceRecognition);
         } else {
             console.error('startVoiceBtn not found');
         }
         
         if (stopVoiceBtn) {
-            stopVoiceBtn.addEventListener('click', stopVoiceRecognition);
+            stopVoiceBtn.addEventListener('click', stopCustomVoiceRecognition);
         } else {
             console.error('stopVoiceBtn not found');
         }
@@ -611,7 +602,7 @@ async function generateTravelPlan(destination, days, budget, preferences) {
         // Try to parse directly
         return JSON.parse(content);
     } catch (parseError) {
-        // If direct parsing fails, try to extract JSON from markdown code blocks
+        // If direct parsing fails, try to extract JSON from code blocks
         const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
         if (jsonMatch && jsonMatch[1]) {
             return JSON.parse(jsonMatch[1]);
@@ -851,155 +842,495 @@ function handleSettingsFormSubmit(e) {
     alert('设置已保存');
 }
 
-// Initialize speech recognition
-function initSpeechRecognition() {
+// Initialize iFlytek speech recognition
+function initIFlytekSpeechRecognition() {
+    console.log('Initializing iFlytek speech recognition via backend API');
+    
+    // Check for browser support
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+        console.warn('浏览器不支持录音功能');
+        setupManualSpeechInput();
+        return;
+    }
+    
+    // Instead of using browser speech recognition, we'll use our own implementation
+    // that sends audio data to our backend which uses iFlytek API
+    console.log('Using custom iFlytek implementation via backend');
+    
+    // We'll add event listeners to the voice buttons
+    const startVoiceBtn = document.getElementById('start-voice-btn');
+    const stopVoiceBtn = document.getElementById('stop-voice-btn');
+    
+    if (startVoiceBtn && stopVoiceBtn) {
+        // 添加新的事件监听器
+        startVoiceBtn.addEventListener('click', startCustomVoiceRecognition);
+        stopVoiceBtn.addEventListener('click', stopCustomVoiceRecognition);
+        
+        console.log('Voice recognition event listeners added');
+    } else {
+        console.error('Voice buttons not found');
+        setupManualSpeechInput();
+    }
+}
+
+// Variables for custom voice recognition
+let mediaRecorder;
+let audioChunks = [];
+let debugAudioBlob = null; // 用于存储录制的音频blob用于调试
+let audioStream;
+
+// Start custom voice recognition
+async function startCustomVoiceRecognition() {
+    console.log('Starting custom voice recognition');
+    
+    // Check if we're on a secure context (HTTPS or localhost)
+    if (!isSecureContext) {
+        const message = '当前环境不支持录音功能。请确保通过HTTPS或localhost访问此页面。';
+        console.warn(message);
+        showStatusMessage(message, 'error');
+        return;
+    }
+    
     try {
-        if ('webkitSpeechRecognition' in window) {
-            recognition = new webkitSpeechRecognition();
-        } else if ('SpeechRecognition' in window) {
-            recognition = new SpeechRecognition();
-        } else {
-            console.warn('Speech recognition not supported');
-            hideVoiceButtons();
-            return;
+        // Clean up any previous recording
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
         }
         
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'zh-CN';
+        if (audioStream) {
+            audioStream.getTracks().forEach(track => track.stop());
+        }
         
-        recognition.onstart = () => {
-            isRecognizing = true;
-            const startVoiceBtn = document.getElementById('start-voice-btn');
-            const stopVoiceBtn = document.getElementById('stop-voice-btn');
-            if (startVoiceBtn) startVoiceBtn.disabled = true;
-            if (stopVoiceBtn) stopVoiceBtn.disabled = false;
-            console.log('Speech recognition started');
-            // 不再显示"正在语音转文字"的弹窗
+        // Reset variables
+        audioChunks = [];
+        debugAudioBlob = null;
+        
+        // Get microphone access with more compatible constraints
+        const constraints = {
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            }
         };
         
-        recognition.onresult = (event) => {
-            let finalTranscript = '';
-            
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                const transcript = event.results[i][0].transcript;
-                if (event.results[i].isFinal) {
-                    finalTranscript += transcript;
+        // Try to get stream with constraints
+        audioStream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('Microphone access granted');
+        
+        // Create media recorder with better browser compatibility
+        let mimeType = '';
+        
+        // Check for supported MIME types in order of preference
+        const mimeTypes = [
+            'audio/webm;codecs=opus',
+            'audio/webm',
+            'audio/ogg;codecs=opus',
+            'audio/ogg',
+            'audio/mp4'
+        ];
+        
+        for (const type of mimeTypes) {
+            if (MediaRecorder.isTypeSupported(type)) {
+                mimeType = type;
+                break;
+            }
+        }
+        
+        // For Chrome, we might need to use the default MIME type
+        const options = mimeType ? { mimeType } : {};
+        console.log('Using MIME type:', mimeType || 'default');
+        
+        mediaRecorder = new MediaRecorder(audioStream, options);
+        
+        // Set up event handlers
+        mediaRecorder.ondataavailable = event => {
+            console.log('Data available, size:', event.data.size);
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
+            }
+        };
+        
+        mediaRecorder.onstop = async () => {
+            console.log('MediaRecorder stopped');
+            // Process collected audio data
+            if (audioChunks.length > 0 && audioChunks.some(chunk => chunk.size > 0)) {
+                const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                console.log('Created audio blob, size:', audioBlob.size, 'type:', audioBlob.type);
+                debugAudioBlob = audioBlob;
+                // 设置全局变量latestAudioBlob
+                window.latestAudioBlob = audioBlob;
+                showDebugAudioPlayer(audioBlob);
+                
+                // Convert to base64 for sending to backend
+                try {
+                    const base64Data = await convertBlobToBase64(audioBlob);
+                    console.log('音频数据转换完成，base64长度:', base64Data.length);
+                    
+                    // Send to backend for speech recognition
+                    sendAudioToBackend(base64Data);
+                } catch (error) {
+                    console.error('Error converting audio to base64:', error);
+                    showStatusMessage('音频转换失败: ' + error.message, 'error');
+                    hideDebugAudioPlayer();
                 }
-            }
-            
-            // Update form fields with recognized text
-            if (finalTranscript) {
-                updateFormWithSpeech(finalTranscript);
+            } else {
+                console.log('没有录制到音频数据');
+                showStatusMessage('没有录制到音频数据', 'error');
+                hideDebugAudioPlayer();
             }
         };
         
-        recognition.onerror = (event) => {
-            console.error('Speech recognition error', event.error, event.message);
-            stopVoiceRecognition();
-            alert('语音识别出错: ' + event.error + (event.message ? ' - ' + event.message : ''));
-        };
-        
-        recognition.onend = () => {
+        // Error handling
+        mediaRecorder.onerror = (event) => {
+            console.error('MediaRecorder error:', event.error);
+            showStatusMessage('录音出错: ' + (event.error?.message || '未知错误'), 'error');
             isRecognizing = false;
-            const startVoiceBtn = document.getElementById('start-voice-btn');
-            const stopVoiceBtn = document.getElementById('stop-voice-btn');
-            if (startVoiceBtn) startVoiceBtn.disabled = false;
-            if (stopVoiceBtn) stopVoiceBtn.disabled = true;
-            console.log('Speech recognition ended');
+            updateVoiceButtonState(false);
         };
+        
+        // Start recording with time slicing to ensure data is available
+        // Use smaller time slice for better compatibility
+        mediaRecorder.start(250); // Collect data every 250ms
+        isRecognizing = true;
+        updateVoiceButtonState(true);
+        showStatusMessage('正在录音，请说话...', 'info');
+        
+        console.log('Started recording with MediaRecorder');
+        
+        // Set recording timeout
+        setTimeout(() => {
+            if (isRecognizing) {
+                stopCustomVoiceRecognition();
+            }
+        }, 15000); // 15秒自动停止
+        
     } catch (error) {
-        console.error('Error initializing speech recognition:', error);
-        hideVoiceButtons();
+        console.error('Error starting voice recognition:', error);
+        let message = '无法访问麦克风: ' + error.message;
+        
+        // Provide specific guidance for common issues
+        if (error.name === 'NotAllowedError') {
+            message = '麦克风访问被拒绝。请检查浏览器权限设置并允许访问麦克风。';
+        } else if (error.name === 'NotFoundError') {
+            message = '未找到可用的麦克风设备。请检查设备连接。';
+        } else if (error.name === 'NotSupportedError') {
+            message = '当前环境不支持录音功能。请确保通过HTTPS或localhost访问此页面。';
+        }
+        
+        showStatusMessage(message, 'error');
+        isRecognizing = false;
+        updateVoiceButtonState(false);
     }
 }
 
-// Hide voice buttons if speech recognition is not supported
-function hideVoiceButtons() {
-    const voiceInputGroup = document.querySelector('#voice-input').closest('.form-group');
-    if (voiceInputGroup) {
-        voiceInputGroup.style.display = 'none';
-    }
-}
-
-// Start voice recognition
-function startVoiceRecognition() {
-    if (isRecognizing) {
-        alert('正在语音转文字，请先停止当前识别');
-        return;
-    }
-    
-    const preferencesField = document.getElementById('preferences');
-    if (!preferencesField) {
-        console.error('Preferences field not found');
-        return;
-    }
+// Stop custom voice recognition
+function stopCustomVoiceRecognition() {
+    console.log('Stopping voice recognition');
     
     try {
-        // Check if we're on a secure context or localhost
-        if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-            alert('语音识别需要在安全环境(HTTPS)或本地环境运行');
-            return;
+        // Stop media recorder
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+            console.log('MediaRecorder stop command sent');
         }
         
-        recognition.start();
+        // Stop all tracks
+        if (audioStream) {
+            audioStream.getTracks().forEach(track => {
+                console.log('Stopping track:', track.kind);
+                track.stop();
+            });
+        }
+        
+        isRecognizing = false;
+        updateVoiceButtonState(false);
+        console.log('Stopped recording');
     } catch (error) {
-        console.error('Error starting speech recognition:', error);
-        alert('启动语音识别失败: ' + error.message);
+        console.error('Error stopping voice recognition:', error);
+        showStatusMessage('停止录音时出错: ' + error.message, 'error');
+        isRecognizing = false;
+        updateVoiceButtonState(false);
+        hideDebugAudioPlayer();
     }
 }
 
-// Stop voice recognition
-function stopVoiceRecognition() {
-    if (!isRecognizing) {
-        return;
+// Show debug audio player
+function showDebugAudioPlayer(blob) {
+    const debugElement = document.getElementById('audio-debug');
+    const audioPlayer = document.getElementById('debug-audio-player');
+    
+    if (debugElement && audioPlayer) {
+        // Revoke previous object URLs to free memory
+        if (audioPlayer.src) {
+            URL.revokeObjectURL(audioPlayer.src);
+        }
+        
+        const url = URL.createObjectURL(blob);
+        audioPlayer.src = url;
+        debugElement.style.display = 'block';
+        
+        // Ensure the audio is loaded
+        audioPlayer.load();
+        
+        // Add event listener to play button
+        const playButton = document.getElementById('play-debug-audio');
+        if (playButton) {
+            playButton.onclick = () => {
+                // Reset playback position
+                audioPlayer.currentTime = 0;
+                
+                // Make sure to handle the play promise
+                const playPromise = audioPlayer.play();
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => {
+                            console.log('音频播放成功');
+                            showStatusMessage('音频播放成功', 'success');
+                        })
+                        .catch(error => {
+                            console.error('音频播放失败:', error);
+                            showStatusMessage('音频播放失败: ' + error.message, 'error');
+                        });
+                }
+            };
+        }
+        
+        // Add download button for debugging
+        let downloadButton = document.getElementById('download-debug-audio');
+        if (!downloadButton) {
+            downloadButton = document.createElement('button');
+            downloadButton.id = 'download-debug-audio';
+            downloadButton.textContent = '下载音频文件';
+            downloadButton.style.marginLeft = '10px';
+            downloadButton.onclick = () => {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'recorded-audio.webm';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            debugElement.appendChild(downloadButton);
+        }
+        
+        // Add save base64 button for backend testing
+        let saveBase64Button = document.getElementById('save-base64-audio');
+        if (!saveBase64Button) {
+            saveBase64Button = document.createElement('button');
+            saveBase64Button.id = 'save-base64-audio';
+            saveBase64Button.textContent = '保存Base64数据';
+            saveBase64Button.style.marginLeft = '10px';
+            saveBase64Button.onclick = saveAudioDataBase64;
+            debugElement.appendChild(saveBase64Button);
+        }
     }
+}
+
+// Save audio data as base64 for backend testing
+function saveAudioDataBase64() {
+    if (debugAudioBlob) {
+        const reader = new FileReader();
+        reader.onload = function() {
+            const base64Data = reader.result.split(',')[1]; // Remove data URL prefix
+            // Send to backend for saving
+            fetch(`${API_BASE_URL}/new-speech/save-audio-debug`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ audioData: base64Data })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatusMessage('音频数据已保存到服务器', 'success');
+                } else {
+                    showStatusMessage('保存失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('保存音频数据时出错:', error);
+                showStatusMessage('保存失败: ' + error.message, 'error');
+            });
+        };
+        reader.readAsDataURL(debugAudioBlob);
+    }
+}
+
+// Hide debug audio player
+function hideDebugAudioPlayer() {
+    const debugElement = document.getElementById('audio-debug');
+    if (debugElement) {
+        debugElement.style.display = 'none';
+    }
+}
+
+// Send audio data to backend
+async function sendAudioToBackend(audioBase64) {
+    showProcessingModal();
     
     try {
-        // 显示处理中模态框
-        if (processingModal) {
-            processingModal.classList.remove('hidden');
+        console.log('Sending speech recognition request to:', `${API_BASE_URL}/new-speech/new-speech-to-text`);
+        const response = await fetch(`${API_BASE_URL}/new-speech/new-speech-to-text`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                audioData: audioBase64
+            })
+        });
+        
+        console.log('Received response, status:', response.status);
+        console.log('Response Content-Type:', response.headers.get('content-type'));
+        
+        // Check if response is JSON format
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            // If not JSON response, get text content to see what was actually returned
+            const textResponse = await response.text();
+            console.error('Non-JSON response, actual content:', textResponse.substring(0, 500));
+            throw new Error(`Server returned non-JSON response (Status: ${response.status})`);
         }
         
-        recognition.stop();
+        const result = await response.json();
+        console.log('Speech recognition response:', result);
         
-        // 在识别结束时隐藏处理中模态框
-        recognition.onend = () => {
-            isRecognizing = false;
-            const startVoiceBtn = document.getElementById('start-voice-btn');
-            const stopVoiceBtn = document.getElementById('stop-voice-btn');
-            if (startVoiceBtn) startVoiceBtn.disabled = false;
-            if (stopVoiceBtn) stopVoiceBtn.disabled = true;
-            console.log('Speech recognition ended');
-            
-            // 隐藏处理中模态框
-            if (processingModal) {
-                processingModal.classList.add('hidden');
-            }
-        };
-    } catch (error) {
-        console.error('Error stopping speech recognition:', error);
-        // 隐藏处理中模态框
-        if (processingModal) {
-            processingModal.classList.add('hidden');
-        }
-    }
-}
-
-// Update form with speech recognition results
-function updateFormWithSpeech(text) {
-    const preferencesField = document.getElementById('preferences');
-    
-    if (preferencesField) {
-        if (preferencesField.value) {
-            preferencesField.value += ' ' + text;
+        if (response.ok && result.success) {
+            console.log('Speech recognition successful, text length:', result.text.length);
+            updateFormWithSpeech(result.text);
+            showStatusMessage('语音识别成功', 'success');
         } else {
-            preferencesField.value = text;
+            console.log('Speech recognition failed:', result.message);
+            showStatusMessage('语音识别失败: ' + (result.message || '未知错误'), 'error');
         }
-        
-        // 触发input事件以便更新任何监听器
-        preferencesField.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch (error) {
+        console.error('Error sending audio to backend:', error);
+        showStatusMessage('语音识别请求失败: ' + error.message, 'error');
+    } finally {
+        hideProcessingModal();
     }
+}
+
+// Convert blob to base64
+function convertBlobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(',')[1]); // Remove data URL prefix
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Convert WebM blob to raw PCM data for科大讯飞(iFlytek) API
+async function convertWebMToRawPCM(audioBuffer) {
+  console.warn("警告：当前实现不包含完整的WebM到PCM转换，仅为测试用途");
+  
+  // 这里应该实现完整的WebM到PCM转换
+  // 但在当前实现中，我们直接返回buffer，由后端处理转换
+  return audioBuffer;
+}
+
+// Convert ArrayBuffer to Base64
+function arrayBufferToBase64(buffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+// Show processing modal
+function showProcessingModal() {
+  if (processingModal) {
+    processingModal.classList.remove('hidden');
+  }
+}
+
+// Hide processing modal
+function hideProcessingModal() {
+  if (processingModal) {
+    processingModal.classList.add('hidden');
+  }
+}
+
+// Show status message
+function showStatusMessage(message, type) {
+  // 移除可能已存在的状态消息
+  const existingMessage = document.querySelector('.status-message');
+  if (existingMessage) {
+    existingMessage.remove();
+  }
+  
+  // 创建新的状态消息元素
+  const statusMessage = document.createElement('div');
+  statusMessage.className = `status-message ${type}`;
+  statusMessage.textContent = message;
+  statusMessage.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    z-index: 10000;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  `;
+  
+  // 根据消息类型设置背景色
+  if (type === 'error') {
+    statusMessage.style.backgroundColor = '#e74c3c';
+  } else if (type === 'info') {
+    statusMessage.style.backgroundColor = '#3498db';
+  } else {
+    statusMessage.style.backgroundColor = '#2ecc71';
+  }
+  
+  // 添加到页面
+  document.body.appendChild(statusMessage);
+  
+  // 3秒后自动移除
+  setTimeout(() => {
+    if (statusMessage.parentNode) {
+      statusMessage.parentNode.removeChild(statusMessage);
+    }
+  }, 3000);
+}
+
+// Update voice button state
+function updateVoiceButtonState(isRecording) {
+  const startVoiceBtn = document.getElementById('start-voice-btn');
+  const stopVoiceBtn = document.getElementById('stop-voice-btn');
+  
+  if (startVoiceBtn && stopVoiceBtn) {
+    if (isRecording) {
+      startVoiceBtn.disabled = true;
+      stopVoiceBtn.disabled = false;
+      startVoiceBtn.textContent = '录音中...';
+    } else {
+      startVoiceBtn.disabled = false;
+      stopVoiceBtn.disabled = true;
+      startVoiceBtn.textContent = '开始语音输入';
+    }
+  }
+}
+
+// Update form with speech recognition result
+function updateFormWithSpeech(text) {
+  const preferencesInput = document.getElementById('preferences');
+  if (preferencesInput) {
+    // 如果输入框中已有内容，则将新内容追加到现有内容后面
+    if (preferencesInput.value) {
+      preferencesInput.value += ' ' + text;
+    } else {
+      preferencesInput.value = text;
+    }
+  } else {
+    console.error('无法找到ID为preferences的输入框');
+  }
 }
 
 // Fetch user's travel plans
