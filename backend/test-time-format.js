@@ -1,5 +1,13 @@
 const { createHmac } = require('crypto');
 
+// 引入环境变量
+require('dotenv').config({ path: __dirname + '/.env' });
+
+// 从环境变量获取配置
+const APISecret = process.env.IFLYTEK_API_SECRET || 'YTZhNTA3NjYwNGUzYzRlYjA2Nzc0OTMx';
+const APIKey = process.env.IFLYTEK_API_KEY || 'b5f70b0f61f68ada14e3c9bcf23fc819';
+const APPID = process.env.IFLYTEK_APP_ID || '2586de2e';
+
 // 测试时间格式
 const date = new Date().toGMTString();
 console.log('当前时间 (GMT):', date);
@@ -8,8 +16,6 @@ console.log('时间格式是否符合RFC1123标准:', /^[\w]{3}, [\d]{1,2} [\w]{
 // 测试签名过程
 const host = 'iat.xf-yun.com';
 const requestLine = 'GET /v1 HTTP/1.1';
-const APISecret = 'YTZhNTA3NjYwNGUzYzRlYjA2Nzc0OTMx';
-const APIKey = 'b5f70b0f61f68ada14e3c9bcf23fc819';
 
 console.log('\n构建签名参数:');
 console.log('- Host:', host);

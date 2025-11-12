@@ -5,12 +5,15 @@ const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegStatic = require('ffmpeg-static');
 
+// 引入环境变量
+require('dotenv').config({ path: __dirname + '/../../.env' });
+
 class IflytekService {
   constructor() {
-    // 这些配置信息需要替换为你自己的科大讯飞API密钥
-    this.APPID = '2586de2e';
-    this.APIKey = 'b5f70b0f61f68ada14e3c9bcf23fc819';
-    this.APISecret = 'YTZhNTA3NjYwNGUzYzRlYjA2Nzc0OTMx';
+    // 从环境变量获取配置
+    this.APPID = process.env.IFLYTEK_APP_ID || '2586de2e';
+    this.APIKey = process.env.IFLYTEK_API_KEY || 'b5f70b0f61f68ada14e3c9bcf23fc819';
+    this.APISecret = process.env.IFLYTEK_API_SECRET || 'YTZhNTA3NjYwNGUzYzRlYjA2Nzc0OTMx';
     
     // 添加日志以检查配置
     console.log('初始化科大讯飞服务:');

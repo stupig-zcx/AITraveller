@@ -1,9 +1,11 @@
 const { createHmac } = require('crypto');
 
-// 您的API信息
-const APPID = '2586de2e';
-const APIKey = 'b5f70b0f61f68ada14e3c9bcf23fc819';
-const APISecret = 'YTZhNTA3NjYwNGUzYzRlYjA2Nzc0OTMx';
+// 引入环境变量
+require('dotenv').config({ path: __dirname + '/.env' });
+
+const APPID = process.env.IFLYTEK_APP_ID || '2586de2e';
+const APIKey = process.env.IFLYTEK_API_KEY || 'b5f70b0f61f68ada14e3c9bcf23fc819';
+const APISecret = process.env.IFLYTEK_API_SECRET || 'YTZhNTA3NjYwNGUzYzRlYjA2Nzc0OTMx';
 
 // 请求参数
 const url = 'wss://iat.xf-yun.com/v1';

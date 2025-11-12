@@ -866,7 +866,7 @@ async function saveTravelPlanToBackend(travelPlan) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s'
+                'apikey': localStorage.getItem('supabaseAnonKey') || ''
             },
             body: JSON.stringify({
                 userId: currentUser.id,

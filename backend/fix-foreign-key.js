@@ -1,39 +1,45 @@
 const fetch = require('node-fetch');
 
+// 引入环境变量
+require('dotenv').config({ path: __dirname + '/.env' });
+
+// 从环境变量获取配置
+const supabaseUrl = process.env.SUPABASE_URL || 'https://olsezvgkkwwpvbdkdusq.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s';
+
+async function checkConstraints() {
+    console.log('Checking foreign key constraints...');
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/check_constraints`, {
+        method: 'POST',
+        headers: {
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json'
+        }
+    });
+
+    if (response.ok) {
+        const data = await response.json();
+        console.log('Current constraints:', data);
+    } else {
+        console.log('Could not check constraints, but will attempt to fix them anyway');
+    }
+}
+
 async function fixForeignKeyConstraint() {
   try {
     console.log('Attempting to fix foreign key constraint...');
     
     // 首先检查当前的约束
-    const response = await fetch('https://olsezvgkkwwpvbdkdusq.supabase.co/rest/v1/rpc/check_constraints', {
-      method: 'POST',
-      headers: {
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        query: `
-          SELECT conname, conkey, confkey, confrelid::regclass
-          FROM pg_constraint 
-          WHERE conrelid = 'travel_plans'::regclass AND contype = 'f'
-        `
-      })
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('Current constraints:', data);
-    } else {
-      console.log('Could not check constraints, but will attempt to fix them anyway');
-    }
+    await checkConstraints();
     
     // 尝试修复外键约束
-    const fixResponse = await fetch('https://olsezvgkkwwpvbdkdusq.supabase.co/rest/v1/rpc/fix_travel_plan_constraint', {
+    const fixResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/fix_travel_plan_constraint`, {
       method: 'POST',
       headers: {
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s',
+        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseServiceKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({

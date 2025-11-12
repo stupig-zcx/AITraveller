@@ -1,4 +1,37 @@
+// 引入环境变量
+require('dotenv').config({ path: __dirname + '/.env' });
+
+// 从环境变量获取配置
+const supabaseUrl = process.env.SUPABASE_URL || 'https://olsezvgkkwwpvbdkdusq.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s';
+
 const fetch = require('node-fetch');
+
+async function testSupabaseAPI() {
+    console.log('Testing Supabase API connection...');
+    
+    // 测试用户表查询
+    try {
+        const duplicateUserResponse = await fetch(`${supabaseUrl}/rest/v1/users`, {
+            method: 'GET',
+            headers: {
+                'apikey': supabaseServiceKey,
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (duplicateUserResponse.ok) {
+            console.log('Supabase API connection is working correctly');
+        } else {
+            console.log('Supabase API connection may not be working. Status:', duplicateUserResponse.status);
+            const errorData = await duplicateUserResponse.json();
+            console.log('Error data:', errorData);
+        }
+    } catch (err) {
+        console.error('Unexpected error:', err);
+    }
+}
 
 async function checkIndexes() {
   try {
@@ -8,11 +41,11 @@ async function checkIndexes() {
     // 检查唯一索引是否有效（尝试插入重复用户名）
     console.log('Testing unique constraint on username...');
     
-    const duplicateUserResponse = await fetch('https://olsezvgkkwwpvbdkdusq.supabase.co/rest/v1/users', {
+    const duplicateUserResponse = await fetch(`${supabaseUrl}/rest/v1/users`, {
       method: 'POST',
       headers: {
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s',
+        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseServiceKey}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
@@ -37,11 +70,11 @@ async function checkIndexes() {
     console.log('Testing query performance with user_id filter...');
     const startTime = Date.now();
     
-    const plansResponse = await fetch('https://olsezvgkkwwpvbdkdusq.supabase.co/rest/v1/travel_plans?user_id=eq.72cf0010-b91a-4ee2-b645-19dc6f0292e6', {
+    const plansResponse = await fetch(`${supabaseUrl}/rest/v1/travel_plans?user_id=eq.72cf0010-b91a-4ee2-b645-19dc6f0292e6`, {
       method: 'GET',
       headers: {
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sc2V6dmdra3d3cHZiZGtkdXNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjc4NjU5MywiZXhwIjoyMDc4MzYyNTkzfQ.KkheVrm_lrhtDIcg0FOaCnTCbhD20uakiTCQg7mxS4s',
+        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseServiceKey}`,
         'Content-Type': 'application/json'
       }
     });
@@ -57,4 +90,5 @@ async function checkIndexes() {
   }
 }
 
+testSupabaseAPI();
 checkIndexes();
