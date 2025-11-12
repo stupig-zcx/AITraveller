@@ -1,17 +1,17 @@
-# 启动旅游规划助手项目
+# Start the travel planning assistant project
 
-Write-Host "正在启动旅游规划助手项目..." -ForegroundColor Green
+Write-Host "Starting travel planning assistant project..." -ForegroundColor Green
 
-# 启动后端服务
-Write-Host "启动后端服务..." -ForegroundColor Yellow
+# Start backend service
+Write-Host "Starting backend service..." -ForegroundColor Yellow
 Set-Location -Path ".\backend"
 Start-Process -FilePath "cmd" -ArgumentList "/k npm start" -WindowStyle Normal -PassThru
 
-# 返回上级目录并启动前端
+# Return to parent directory and start frontend
 Set-Location -Path ".."
-Write-Host "启动前端应用..." -ForegroundColor Yellow
+Write-Host "Starting frontend application..." -ForegroundColor Yellow
 Start-Process -FilePath "cmd" -ArgumentList "/k python -m http.server 8000" -WindowStyle Normal -PassThru
 
-Write-Host "项目启动完成！" -ForegroundColor Green
-Write-Host "前端应用将在 http://localhost:8000 上运行" -ForegroundColor Cyan
-Write-Host "后端服务将在 http://localhost:3000 上运行" -ForegroundColor Cyan
+Write-Host "Project startup complete!" -ForegroundColor Green
+Write-Host "Frontend application will run on http://localhost:8000" -ForegroundColor Cyan
+Write-Host "Backend service will run on http://localhost:3000" -ForegroundColor Cyan
